@@ -2,6 +2,7 @@
 /**
  * Table Definition for profile_tag
  */
+require_once INSTALLDIR.'/classes/Memcached_DataObject.php';
 
 class Profile_tag extends Memcached_DataObject
 {
@@ -130,8 +131,9 @@ class Profile_tag extends Memcached_DataObject
     /* create the tag if it does not exist, return it */
     static function ensureTag($tagger, $tag)
     {
-        $existing_tags = Profile_tag_map::getTagged($tagger, $tag);
-        if(empty($existing_tags)) {
+        $ptag = Profile_tag::getByTaggerAndTag($tagger, $tag);
+
+        if(empty($ptag->id)) {
             $new_tag = new Profile_tag();
             $new_tag->tagger = $tagger;
             $new_tag->tag = $tag;
@@ -142,7 +144,7 @@ class Profile_tag extends Memcached_DataObject
             }
             return $new_tag;
         }
-        return Profile_tag::getByTaggerAndTag($tagger, $tag);
+        return $ptag;
     }
 
     /* if there isn't use for a tag, delete it. Should be called after an untag
