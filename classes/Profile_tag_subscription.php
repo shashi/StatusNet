@@ -1,19 +1,6 @@
-
-create table profile_tag_subscription (
-    profile_tag_id integer not null comment 'foreign key to profile_tag' references profile_tag (id),
-    profile_id integer not null comment 'foreign key to profile table' references profile (id),
-
-    created datetime not null comment 'date this record was created',
-    modified timestamp comment 'date this record was modified',
-
-    constraint primary key (profile_tag_id, profile_id),
-    index profile_tag_subscription_profile_id_idx (profile_id),
-    index profile_tag_subscription_created_idx (created)
-
-) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_bin;
 <?php
 /**
- * Table Definition for profile_tag_map
+ * Table Definition for profile_tag_subscription
  */
 require_once INSTALLDIR.'/classes/Memcached_DataObject.php';
 
