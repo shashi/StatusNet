@@ -17,7 +17,7 @@ create table profile_tag_subscription (
  */
 require_once INSTALLDIR.'/classes/Memcached_DataObject.php';
 
-class Profile_tag_map extends Memcached_DataObject
+class Profile_tag_subscription extends Memcached_DataObject
 {
     ###START_AUTOCODE
     /* the code below is auto generated do not remove the above tag */
