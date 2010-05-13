@@ -1,0 +1,6 @@
+This is the twitter list branch, to set up database run:
+
+mysql -u dbuser --password=password dbname < db/peopletags.sql
+
+WARNING: you'll need to run scripts/rebuilddb.sh to use other branches
+More on http://status.net/wiki/Lists

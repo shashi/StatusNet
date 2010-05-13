@@ -2,102 +2,222 @@
 /**
  * Table Definition for profile_tag
  */
-require_once INSTALLDIR.'/classes/Memcached_DataObject.php';
 
 class Profile_tag extends Memcached_DataObject
 {
     ###START_AUTOCODE
     /* the code below is auto generated do not remove the above tag */
 
-    public $__table = 'profile_tag';                     // table name
-    public $tagger;                          // int(4)  primary_key not_null
-    public $tagged;                          // int(4)  primary_key not_null
-    public $tag;                             // varchar(64)  primary_key not_null
-    public $modified;                        // timestamp()   not_null default_CURRENT_TIMESTAMP
+    public $__table = 'profile_tag';                      // table name
+    public $id;                              // int(4)  primary_key not_null
+    public $user_id;                         // int(4)
+    public $tag;                             // varchar(64)
+    public $description;                     // text
+    public $created;                         // datetime   not_null default_0000-00-00%2000%3A00%3A00
+    public $modified;                        // timestamp   not_null default_CURRENT_TIMESTAMP
+    public $uri;                             // varchar(255)  unique_key
+    public $mainpage;                        // varchar(255)
 
     /* Static get */
-    function staticGet($k,$v=null)
-    { return Memcached_DataObject::staticGet('Profile_tag',$k,$v); }
+    function staticGet($k,$v=NULL) { return DB_DataObject::staticGet('Profile_tag',$k,$v); }
 
     /* the code above is auto generated do not remove the tag below */
     ###END_AUTOCODE
 
-    static function getTags($tagger, $tagged) {
-
-        $tags = array();
-
-        # XXX: store this in memcached
-
-        $profile_tag = new Profile_tag();
-        $profile_tag->tagger = $tagger;
-        $profile_tag->tagged = $tagged;
-
-        $profile_tag->find();
-
-        while ($profile_tag->fetch()) {
-            $tags[] = $profile_tag->tag;
+    function getUri()
+    {
+        $uri = null;
+        if (Event::handle('StartProfiletagGetUri', array($this, &$uri))) {
+            if (!empty($this->uri)) {
+                $uri = $this->uri;
+            } else {
+                $uri = common_local_url('profiletagbyid',
+                                        array('id' => $this->id));
+            }
         }
-
-        $profile_tag->free();
-
-        return $tags;
+        Event::handle('EndProfiletagGetUri', array($this, &$uri));
+        return $uri;
     }
 
-    static function setTags($tagger, $tagged, $newtags) {
+    function permalink()
+    {
+        $url = null;
+        if (Event::handle('StartProfiletagPermalink', array($this, &$url))) {
+            $url = common_local_url('profiletagbyid',
+                                    array('id' => $this->id));
+        }
+        Event::handle('EndProfiletagPermalink', array($this, &$url));
+        return $url;
+    }
 
-        $newtags = array_unique($newtags);
-        $oldtags = Profile_tag::getTags($tagger, $tagged);
+    function getNotices($offset, $limit, $since_id=null, $max_id=null)
+    {
+        $ids = Notice::stream(array($this, '_streamDirect'),
+                              array(),
+                              'profile_tag:notice_ids:' . $this->id,
+                              $offset, $limit, $since_id, $max_id);
 
-        # Delete stuff that's old that not in new
+        return Notice::getStreamByIds($ids);
+    }
 
-        $to_delete = array_diff($oldtags, $newtags);
+    function _streamDirect($offset, $limit, $since_id, $max_id)
+    {
+        $inbox = new Profile_tag_inbox();
 
-        # Insert stuff that's in new and not in old
+        $inbox->profile_tag_id = $this->id;
 
-        $to_insert = array_diff($newtags, $oldtags);
+        $inbox->selectAdd();
+        $inbox->selectAdd('notice_id');
 
-        $profile_tag = new Profile_tag();
+        if ($since_id != 0) {
+            $inbox->whereAdd('notice_id > ' . $since_id);
+        }
 
-        $profile_tag->tagger = $tagger;
-        $profile_tag->tagged = $tagged;
+        if ($max_id != 0) {
+            $inbox->whereAdd('notice_id <= ' . $max_id);
+        }
 
-        $profile_tag->query('BEGIN');
+        $inbox->orderBy('notice_id DESC');
 
-        foreach ($to_delete as $deltag) {
-            $profile_tag->tag = $deltag;
-            $result = $profile_tag->delete();
-            if (!$result) {
-                common_log_db_error($profile_tag, 'DELETE', __FILE__);
-                return false;
+        if (!is_null($offset)) {
+            $inbox->limit($offset, $limit);
+        }
+
+        $ids = array();
+
+        if ($inbox->find()) {
+            while ($inbox->fetch()) {
+                $ids[] = $inbox->notice_id;
             }
         }
 
-        foreach ($to_insert as $instag) {
-            $profile_tag->tag = $instag;
-            $result = $profile_tag->insert();
-            if (!$result) {
-                common_log_db_error($profile_tag, 'INSERT', __FILE__);
-                return false;
+        return $ids;
+    }
+
+    function getTagged($offset=0, $limit=null)
+    {
+        $qry =
+          'SELECT profile.* ' .
+          'FROM profile JOIN profile_tag_map '.
+          'ON profile.id = profile_tag_map.tagged ' .
+          'WHERE profile_tag_map.profile_tag_id = %d ' .
+          'ORDER BY profile_tag_map.created DESC ';
+
+        if ($limit != null) {
+            if (common_config('db','type') == 'pgsql') {
+                $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
+            } else {
+                $qry .= ' LIMIT ' . $offset . ', ' . $limit;
             }
         }
 
-        $profile_tag->query('COMMIT');
+        $members = new Profile();
 
-        return true;
+        $members->query(sprintf($qry, $this->id));
+        return $members;
     }
 
-    # Return profiles with a given tag
-    static function getTagged($tagger, $tag) {
-        $profile = new Profile();
-        $profile->query('SELECT profile.* ' .
-                        'FROM profile JOIN profile_tag ' .
-                        'ON profile.id = profile_tag.tagged ' .
-                        'WHERE profile_tag.tagger = ' . $tagger . ' ' .
-                        'AND profile_tag.tag = "' . $tag . '" ');
-        $tagged = array();
-        while ($profile->fetch()) {
-            $tagged[] = clone($profile);
+    static function getByTaggerAndTag($tagger, $tag)
+    {
+        $ptag = new Profile_tag();
+        $ptag->tagger = $tagger;
+        $ptag->tag = $tag;
+        $ptag->find();
+        $ptag->fetch();
+        return $ptag;
+    }
+
+    /* create the tag if it does not exist, return it */
+    static function ensureTag($tagger, $tag)
+    {
+        $existing_tags = Profile_tag_map::getTagged($tagger, $tag);
+        if(empty($existing_tags)) {
+            $new_tag = new Profile_tag();
+            $new_tag->tagger = $tagger;
+            $new_tag->tag = $tag;
+            $result = $new_tag->insert();
+            if (!$result) {
+                common_log_db_error($new_tag, 'INSERT', __FILE__);
+                return false;
+            }
+            return $new_tag;
         }
-        return $tagged;
+        return Profile_tag::getByTaggerAndTag($tagger, $tag);
+    }
+
+    /* if there isn't use for a tag, delete it. Should be called after an untag
+       return true if deleted.
+    */
+    static function cleanupTag($tagger, $tag)
+    {
+        $existing_tags = Profile_tag_map::getTagged($tagger, $tag);
+        if(empty($existing_tags)) {
+            $del_tag = new Profile_tag();
+            $del_tag->tagger = $tagger;
+            $del_tag->tag = $tag;
+            $result = $del_tag->delete();
+            if (!$result) {
+                common_log_db_error($del_tag, 'DELETE', __FILE__);
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    static function maxDescription()
+    {
+        $desclimit = common_config('profiletag', 'desclimit');
+        // null => use global limit (distinct from 0!)
+        if (is_null($desclimit)) {
+            $desclimit = common_config('site', 'textlimit');
+        }
+        return $desclimit;
+    }
+
+    static function descriptionTooLong($desc)
+    {
+        $desclimit = self::maxDescription();
+        return ($desclimit > 0 && !empty($desc) && (mb_strlen($desc) > $desclimit));
+    }
+
+    static function register($fields) {
+
+        // MAGICALLY put fields into current scope
+
+        extract($fields);
+
+        $ptag = new Profile_tag();
+
+        $ptag->query('BEGIN');
+
+        if (empty($uri)) {
+            // fill in later...
+            $uri = null;
+        }
+
+        $ptag->user_id     = $user_id;
+        $ptag->tag         = $tag;
+        $ptag->description = $description;
+        $ptag->uri         = $uri;
+        $ptag->mainpage    = $mainpage;
+        $ptag->created     = common_sql_now();
+
+        $result = $ptag->insert();
+
+        if (!$result) {
+            common_log_db_error($ptag, 'INSERT', __FILE__);
+            throw new ServerException(_('Could not create profile tag.'));
+        }
+
+        if (!isset($uri) || empty($uri)) {
+            $orig = clone($ptag);
+            $ptag->uri = common_local_url('profiletagbyid', array('id' => $ptag->id));
+            $result = $ptag->update($orig);
+            if (!$result) {
+                common_log_db_error($ptag, 'UPDATE', __FILE__);
+                throw new ServerException(_('Could not set people tag URI.'));
+            }
+        }
     }
 }
