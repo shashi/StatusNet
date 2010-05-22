@@ -3,7 +3,7 @@
 /* profile_list stores tag metadata. also, remote peopletags are stored here (similar to user_group) */
 create table profile_list (
     id integer auto_increment unique key comment 'unique identifier',
-    profile_id integer not null comment 'user making the tag' references profile (id), /* this may be a remote profile :) */
+    tagger integer not null comment 'user making the tag' references profile (id), /* this may be a remote profile :) */
     tag varchar(64) not null comment 'hash tag',
     description text comment 'description for the tag',
 
@@ -36,7 +36,7 @@ create table profile_tag_inbox (
 ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_bin;
 
 create table profile_tag_subscription (
-    profile_tag_id integer not null comment 'foreign key to profile_tag' references profile_tag (id),
+    profile_tag_id integer not null comment 'foreign key to profile_tag' references profile_list (id),
 
     profile_id integer not null comment 'foreign key to profile table' references profile (id),
     created datetime not null comment 'date this record was created',

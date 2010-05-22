@@ -15,7 +15,7 @@ class Profile_tag_inbox extends Memcached_DataObject
 
     /* Static get */
 
-    function staticGet($k,$v=NULL) { return Memcached_DataObject::staticGet('Group_inbox',$k,$v); }
+    function staticGet($k,$v=NULL) { return Memcached_DataObject::staticGet('Profile_tag_inbox',$k,$v); }
 
     /* the code above is auto generated do not remove the tag below */
     ###END_AUTOCODE

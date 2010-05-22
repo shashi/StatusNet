@@ -31,7 +31,7 @@ class Profile_tag_subscription extends Memcached_DataObject
     {
         $sub = new People_tag_subscription();
 
-        $sub->group_id   = $people_tag_id;
+        $sub->profile_tag_id   = $people_tag_id;
         $sub->profile_id = $profile_id;
         $sub->created    = common_sql_now();
 
