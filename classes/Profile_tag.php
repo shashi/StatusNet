@@ -48,7 +48,7 @@ class Profile_tag extends Memcached_DataObject
         $newtags = array_unique($newtags);
         $oldtags = Profile_tag::getTags($tagger, $tagged);
 
-        # Delete stuff that's old that not in new
+        # Delete stuff that's in old and not in new
 
         $to_delete = array_diff($oldtags, $newtags);
 
@@ -66,15 +66,23 @@ class Profile_tag extends Memcached_DataObject
         foreach ($to_delete as $deltag) {
             $profile_tag->tag = $deltag;
             $result = $profile_tag->delete();
+
             if (!$result) {
                 common_log_db_error($profile_tag, 'DELETE', __FILE__);
                 return false;
             }
+
+            # Delete tag metadata if no one is tagged
+            Profile_list::cleanupTag($tagger, $deltag);
         }
 
         foreach ($to_insert as $instag) {
             $profile_tag->tag = $instag;
             $result = $profile_tag->insert();
+
+            # Add tag no one is tagged
+            Profile_list::ensureTag($tagger, $instag);
+
             if (!$result) {
                 common_log_db_error($profile_tag, 'INSERT', __FILE__);
                 return false;
