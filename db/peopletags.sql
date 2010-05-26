@@ -21,7 +21,7 @@ create table profile_list (
    description till the user provides a new one */
 /* XXX: uri, modified */
 
-insert into profile_list (user_id, tag, description)
+insert into profile_list (tagger, tag, description)
     select distinct tagger, tag, tag from profile_tag;
 
 create table profile_tag_inbox (

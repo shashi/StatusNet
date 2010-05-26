@@ -792,6 +792,11 @@ class Router
                                 array('nickname' => '[a-zA-Z0-9]{1,64}'));
                 }
 
+                $m->connect(':nickname/all/:profiletag',
+                                array('action' => 'showprofiletag', 
+                                      'nickname' => '[a-zA-Z0-9]{1,64}',
+                                      'profiletag' => '[a-zA-Z0-9]{1,64}'));
+
                 foreach (array('subscriptions', 'subscribers') as $a) {
                     $m->connect(':nickname/'.$a.'/:tag',
                                 array('action' => $a),
