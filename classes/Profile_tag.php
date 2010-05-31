@@ -22,6 +22,11 @@ class Profile_tag extends Memcached_DataObject
     /* the code above is auto generated do not remove the tag below */
     ###END_AUTOCODE
 
+    function links()
+    {
+        return array('tagger,tag' => 'profile_list:tagger,tag');
+    }
+
     static function getTags($tagger, $tagged) {
 
         $tags = array();
