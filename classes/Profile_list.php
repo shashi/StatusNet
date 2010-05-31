@@ -60,7 +60,7 @@ class Profile_list extends Memcached_DataObject
     {
         $ids = Notice::stream(array($this, '_streamDirect'),
                               array(),
-                              'profile_list:notice_ids:' . $this->id,
+                              'profile_tag:notice_ids:' . $this->id,
                               $offset, $limit, $since_id, $max_id);
 
         return Notice::getStreamByIds($ids);

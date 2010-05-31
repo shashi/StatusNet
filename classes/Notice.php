@@ -1076,7 +1076,7 @@ class Notice extends Memcached_DataObject
                 throw new ServerException(_('Problem saving profile_tag inbox.'));
             }
 
-            # self::blow('profile_tag:notice_ids:%d', $ptagi->profile_tag_id);
+            self::blow('profile_tag:notice_ids:%d', $ptagi->profile_tag_id);
         }
 
         return true;
