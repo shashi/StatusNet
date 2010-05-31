@@ -63,6 +63,7 @@ class ShowprofiletagAction extends Action
             return false;
         }
 
+        $this->page = ($this->arg('page')) ? ($this->arg('page')+0) : 1;
         $this->notice = $this->profile_tag->getNotices(($this->page-1)*NOTICES_PER_PAGE, NOTICES_PER_PAGE + 1);
 
         if ($this->page > 1 && $this->notice->N == 0) {
@@ -96,7 +97,7 @@ class ShowprofiletagAction extends Action
                           );
         } else {
             // TRANS: Page title. %1$s is user nickname
-            return sprintf(_("people tagged %1$s by %2$s"), $this->profile_tag->tag, $this->user->nickname);
+            return sprintf(_('people tagged %1$s by %2$s'), $this->profile_tag->tag, $this->user->nickname);
         }
     }
 

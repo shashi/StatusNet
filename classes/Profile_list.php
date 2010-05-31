@@ -68,7 +68,7 @@ class Profile_list extends Memcached_DataObject
 
     function _streamDirect($offset, $limit, $since_id, $max_id)
     {
-        $inbox = new Profile_list_inbox();
+        $inbox = new Profile_tag_inbox();
 
         $inbox->profile_tag_id = $this->id;
 
