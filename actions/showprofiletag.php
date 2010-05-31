@@ -27,6 +27,7 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
 }
 
 require_once INSTALLDIR.'/lib/personalgroupnav.php';
+require_once INSTALLDIR.'/lib/profileminilist.php';
 require_once INSTALLDIR.'/lib/noticelist.php';
 require_once INSTALLDIR.'/lib/feedlist.php';
 
@@ -89,14 +90,14 @@ class ShowprofiletagAction extends Action
     {
         if ($this->page > 1) {
             // TRANS: Page title. %1$s is user nickname, %2$d is page number
-            return sprintf(_('people tagged %1$s by %2$s, page %3$d'),
+            return sprintf(_('People tagged %1$s by %2$s, page %3$d'),
                                 $this->profile_tag->tag,
                                 $this->user->nickname, 
                                 $this->page
                           );
         } else {
             // TRANS: Page title. %1$s is user nickname
-            return sprintf(_('people tagged %1$s by %2$s'), $this->profile_tag->tag, $this->user->nickname);
+            return sprintf(_('People tagged %1$s by %2$s'), $this->profile_tag->tag, $this->user->nickname);
         }
     }
 
@@ -184,6 +185,13 @@ class ShowprofiletagAction extends Action
         }
     }
 
+    function showSections()
+    {
+        $this->showTagged();
+        $this->showSubscriptions();
+        # $this->showStatistics();
+    }
+
     function showPageTitle()
     {
         $user = common_current_user();
@@ -194,5 +202,73 @@ class ShowprofiletagAction extends Action
             // TRANS: H1 text. %1$s is user nickname
             $this->element('h1', null, sprintf(_('People tagged %s by %s'), $this->profile_tag->tag, $this->user->nickname));
         }
+    }
+
+    function showTagged()
+    {
+        $profile = $this->profile_tag->getTagged(0, PROFILES_PER_MINILIST + 1);
+
+        $this->elementStart('div', array('id' => 'entity_subscriptions',
+                                         'class' => 'section'));
+        if (Event::handle('StartShowTaggedProfilesMiniList', array($this))) {
+            $this->element('h2', null, $this->title());
+
+            $cnt = 0;
+
+            if (!empty($profile)) {
+                $pml = new ProfileMiniList($profile, $this);
+                $cnt = $pml->show();
+                if ($cnt == 0) {
+                    $this->element('p', null, _('(None)'));
+                }
+            }
+
+            if ($cnt > PROFILES_PER_MINILIST) {
+                $this->elementStart('p');
+                $this->element('a', array('href' => common_local_url('taggedprofiles',
+                                                                     array('nickname' => $this->user->nickname,
+                                                                           'profiletag' => $this->profile_tag->tag)),
+                                          'class' => 'more'),
+                               _('Show all'));
+                $this->elementEnd('p');
+            }
+
+            Event::handle('EndShowTaggedProfilesMiniList', array($this));
+        }
+        $this->elementEnd('div');
+    }
+
+    function showSubscriptions()
+    {
+        $profile = $this->profile_tag->getSubscribers(0, PROFILES_PER_MINILIST + 1);
+
+        $this->elementStart('div', array('id' => 'entity_subscriptions',
+                                         'class' => 'section'));
+        if (Event::handle('StartShowProfileTagSubscriptionsMiniList', array($this))) {
+            $this->element('h2', null, _('Subscriptions'));
+
+            $cnt = 0;
+
+            if (!empty($profile)) {
+                $pml = new ProfileMiniList($profile, $this);
+                $cnt = $pml->show();
+                if ($cnt == 0) {
+                    $this->element('p', null, _('(None)'));
+                }
+            }
+
+            if ($cnt > PROFILES_PER_MINILIST) {
+                $this->elementStart('p');
+                $this->element('a', array('href' => common_local_url('profiletagsubscriptions',
+                                                                     array('nickname' => $this->user->nickname,
+                                                                           'profiletag' => $this->profile_tag->tag)),
+                                          'class' => 'more'),
+                               _('All subscriptions'));
+                $this->elementEnd('p');
+            }
+
+            Event::handle('EndShowProfileTagSubscriptionsMiniList', array($this));
+        }
+        $this->elementEnd('div');
     }
 }

@@ -104,10 +104,10 @@ class Profile_list extends Memcached_DataObject
     {
         $qry =
           'SELECT profile.* ' .
-          'FROM profile JOIN profile_tag_subscriber '.
-          'ON profile.id = profile_tag_subscriber.profile_id ' .
-          'WHERE profile_tag_subscriber.profile_tag_id = %d ' .
-          'ORDER BY profile_tag_subscriber.created DESC ';
+          'FROM profile JOIN profile_tag_subscription '.
+          'ON profile.id = profile_tag_subscription.profile_id ' .
+          'WHERE profile_tag_subscription.profile_tag_id = %d ' .
+          'ORDER BY profile_tag_subscription.created DESC ';
 
         if ($limit != null) {
             if (common_config('db','type') == 'pgsql') {
@@ -158,8 +158,8 @@ class Profile_list extends Memcached_DataObject
           'FROM profile JOIN profile_tag '.
           'ON profile.id = profile_tag.tagged ' .
           'WHERE profile_tag.tagger = %d ' .
-          'AND tag = "%s" ' .
-          'ORDER BY profile_tag.created DESC ';
+          'AND profile_tag.tag = "%s" ' .
+          'ORDER BY profile_tag.modified DESC ';
 
         if ($limit != null) {
             if (common_config('db','type') == 'pgsql') {
