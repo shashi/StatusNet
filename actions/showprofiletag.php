@@ -46,14 +46,13 @@ class ShowprofiletagAction extends Action
         $nickname_clean = common_canonical_nickname($this->trimmed('nickname'));
         $this->user = User::staticGet('nickname', $nickname_clean);
         if(!$this->user) {
-            $this->inlineScript("alert('".($nickname_clean)."');");
             $this->clientError(_('No such user.'), 404);
             return false;
         }
 
         $ptag_args = array(
                                 'tagger' => $this->user->id,
-                                'tag' => $this->trimmed('tag')
+                                'tag' => $this->trimmed('profiletag')
                           );
 
         $this->profile_tag = Profile_list::pkeyGet($ptag_args);
