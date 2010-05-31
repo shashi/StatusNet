@@ -100,6 +100,57 @@ class Profile_list extends Memcached_DataObject
         return $ids;
     }
 
+    function getSubscribers($offset=0, $limit=null)
+    {
+        $qry =
+          'SELECT profile.* ' .
+          'FROM profile JOIN profile_tag_subscriber '.
+          'ON profile.id = profile_tag_subscriber.profile_id ' .
+          'WHERE profile_tag_subscriber.profile_tag_id = %d ' .
+          'ORDER BY profile_tag_subscriber.created DESC ';
+
+        if ($limit != null) {
+            if (common_config('db','type') == 'pgsql') {
+                $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
+            } else {
+                $qry .= ' LIMIT ' . $offset . ', ' . $limit;
+            }
+        }
+
+        $subs = new Profile();
+
+        $subs->query(sprintf($qry, $this->id));
+        return $subs;
+    }
+
+    function getUserSubscribers()
+    {
+        // XXX: cache this
+
+        $user = new User();
+        if(common_config('db','quote_identifiers'))
+            $user_table = '"user"';
+        else $user_table = 'user';
+
+        $qry =
+          'SELECT id ' .
+          'FROM '. $user_table .' JOIN profile_tag_subscription '.
+          'ON '. $user_table .'.id = profile_tag_subscription.profile_id ' .
+          'WHERE profile_tag_subscription.profile_tag_id = %d ';
+
+        $user->query(sprintf($qry, $this->id));
+
+        $ids = array();
+
+        while ($user->fetch()) {
+            $ids[] = $user->id;
+        }
+
+        $user->free();
+
+        return $ids;
+    }
+
     function getTagged($offset=0, $limit=null)
     {
         $qry =
