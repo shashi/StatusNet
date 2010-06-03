@@ -185,23 +185,12 @@ class TagotherAction extends Action
 
         $user = common_current_user();
 
-        if (!Subscription::pkeyGet(array('subscriber' => $user->id,
-                                         'subscribed' => $this->profile->id)) &&
-            !Subscription::pkeyGet(array('subscriber' => $this->profile->id,
-                                         'subscribed' => $user->id)))
-        {
-            $this->clientError(_('You can only tag people you are subscribed to or who are subscribed to you.'));
-            return;
-        }
-
         $result = Profile_tag::setTags($user->id, $this->profile->id, $tags);
 
         if (!$result) {
             $this->clientError(_('Could not save tags.'));
             return;
         }
-
-        $action = $user->isSubscribed($this->profile) ? 'subscriptions' : 'subscribers';
 
         if ($this->boolean('ajax')) {
             $this->startHTML('text/xml;charset=utf-8');
@@ -220,9 +209,17 @@ class TagotherAction extends Action
             $this->elementEnd('body');
             $this->elementEnd('html');
         } else {
-            common_redirect(common_local_url($action, array('nickname' =>
-                                                            $user->nickname)),
-                            303);
+            $url = common_get_returnto();
+
+            if ($url) {
+                // We don't have to return to it again
+                common_set_returnto(null);
+                $url = common_inject_session($url);
+            } else {
+                $url = common_local_url('listtaggedprofiles',
+                                array('nickname' => $user->nickname));
+            }
+            common_redirect($url, 303);
         }
     }
 
