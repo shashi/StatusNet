@@ -33,6 +33,7 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
 }
 
 require_once INSTALLDIR.'/lib/widget.php';
+require_once INSTALLDIR.'/lib/profiletagsbycurrentuser.php';
 
 /**
  * Profile of a user
@@ -84,6 +85,7 @@ class UserProfile extends Widget
                 $this->showHomepage();
                 $this->showBio();
                 $this->showProfileTags();
+                $this->showTagsByCurrentUser();
 
                 Event::handle('EndProfilePageProfileElements', array(&$this->out, $this->profile));
             }
@@ -225,6 +227,12 @@ class UserProfile extends Widget
             }
             Event::handle('EndProfilePageProfileTags', array($this->out, $this->profile));
         }
+    }
+
+    function showTagsByCurrentUser()
+    {
+        $widget = new ProfileTagsByCurrentUserWidget($this->out, $this->profile);
+        $widget->show();
     }
 
     function showEntityActions()
