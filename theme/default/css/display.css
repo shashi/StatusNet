@@ -207,7 +207,8 @@ button.minimize,
 .entity_subscribe input.submit,
 #realtime_play,
 #realtime_pause,
-#realtime_popup {
+#realtime_popup,
+.profile_tags_edit_button {
 background-image:url(../../base/images/icons/icons-01.gif);
 background-repeat:no-repeat;
 background-color:transparent;
@@ -319,9 +320,14 @@ background-position:5px -1246px;
 background-position:5px -1181px;
 }
 
-.entity_edit a {
+.entity_edit a, .profile_tags_edit_button {
 background-position: 5px -719px;
 }
+
+.profile_tags_edit_button {
+background-position: 0px -724px;
+}
+
 .entity_send-a-message a {
 background-position: 5px -852px;
 }

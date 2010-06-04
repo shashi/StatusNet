@@ -169,7 +169,7 @@ font-weight:bold;
 #form_settings_avatar legend,
 #newgroup legend,
 #editgroup legend,
-#form_tag_user legend,
+.form_tag_user legend,
 #form_remote_subscribe legend,
 #form_openid_login legend,
 #form_search legend,
@@ -179,7 +179,9 @@ font-weight:bold;
 #form_password_change legend,
 .form_entity_block legend,
 #form_filter_bytag legend,
-#apioauthauthorize_allowdeny {
+#apioauthauthorize_allowdeny,
+.user_profile_tags .form_tag_user_wrap,
+.form_tag_user_wrap legend {
 display:none;
 }
 
@@ -689,6 +691,13 @@ margin-left:113px;
 margin-bottom:4px;
 }
 
+.profile_tags_edit_button {
+border:0;
+padding:0;
+width:16px;
+height:16px;
+}
+
 .entity_profile .entity_fn,
 .entity_profile .entity_nickname {
 margin-left:11px;
@@ -945,7 +954,7 @@ clear:none;
 display:block;
 width:auto;
 }
-.profile .entity_profile .entity_tags dt {
+.entity_profile .entity_tags dt {
 display:inline;
 margin-right:11px;
 }
@@ -1244,7 +1253,8 @@ margin-left:0;
 }
 .notice-options input,
 .notice-options a,
-.notice-options .repeated {
+.notice-options .repeated,
+.profile_tags_edit_button {
 text-indent:-9999px;
 outline:none;
 }

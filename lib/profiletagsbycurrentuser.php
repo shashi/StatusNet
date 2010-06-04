@@ -50,16 +50,19 @@ class ProfileTagsByCurrentUserWidget extends Widget
             return true;
         }
 
+        // Do not show self-tags again
+        if($this->user->id == $this->profile->id) {
+            return true;
+        }
+
         if (Event::handle('StartProfilePageProfileTagsByCurrentUser', array($this->out, $this->user))) {
             $this->tags = Profile_tag::getTags($this->user->id, $this->profile->id);
 
             if (count($this->tags) > 0) {
                 $this->showTags();
-                $this->showEditTagForm();
             }
             else {
                 $this->showEmptyList();
-                $this->showEditTagForm();
             }
             Event::handle('StartProfilePageProfileTagsByCurrentUser', array($this->out, $this->profile));
         }
@@ -67,7 +70,7 @@ class ProfileTagsByCurrentUserWidget extends Widget
 
     function showTags()
     {
-        $this->out->elementStart('dl', 'entity_tags');
+        $this->out->elementStart('dl', 'entity_tags user_profile_tags');
         $this->out->element('dt', null, _('Tags by you'));
         $this->out->elementStart('dd');
         $this->out->elementStart('ul', 'tags xoxo');
@@ -81,12 +84,15 @@ class ProfileTagsByCurrentUserWidget extends Widget
             $this->out->elementEnd('li');
         }
         $this->out->elementEnd('ul');
+        $this->showEditTagForm();
         $this->out->elementEnd('dd');
         $this->out->elementEnd('dl');
     }
 
     function showEditTagForm()
     {
+        $this->out->elementStart('ul', 'form_tag_user_wrap');
+        $this->out->elementStart('li');
         $this->out->elementStart('form', array('method' => 'post',
                                            'id' => 'form_tag_user',
                                            'class' => 'form_settings',
@@ -94,25 +100,27 @@ class ProfileTagsByCurrentUserWidget extends Widget
                                            'action' => common_local_url('tagother', array('id' => $this->user->id))));
 
         $this->out->elementStart('fieldset');
-        $this->out->element('legend', null, _('Tag user'));
+        $this->out->element('legend', null, _('Tag this user'));
         $this->out->hidden('token', common_session_token());
         $this->out->hidden('id', $this->profile->id);
 
-        $this->out->input('tags', _('Tags'),
-                     ($this->out->arg('tags')) ? $this->out->arg('tags') : implode(' ', $this->tags),
-                     _('Tags for this user (letters, numbers, -, ., and _), comma- or space- separated'));
-
+        $this->out->input('tags', _('Tag this user'),
+                     ($this->out->arg('tags')) ? $this->out->arg('tags') : implode(' ', $this->tags));
         $this->out->submit('save', _('Save'));
+        // $this->out->element('p', 'form_guide', _('Tags for this user (letters, numbers, -, ., and _), comma- or space- separated'));
         $this->out->elementEnd('fieldset');
         $this->out->elementEnd('form');
+        $this->out->elementEnd('li');
+        $this->out->elementEnd('ul');
     }
 
     function showEmptyList()
     {
-        $this->out->elementStart('dl', 'entity_tags');
+        $this->out->elementStart('dl', 'entity_tags user_profile_tags');
         $this->out->element('dt', null, _('Tags by you'));
         $this->out->elementStart('dd');
-        $this->out->element('ul', array('id' => 'empty_other_tags'));
+        $this->out->element('span', 'tags', _('(None)'));
+        $this->showEditTagForm();
         $this->out->elementEnd('dd');
         $this->out->elementEnd('dl');
     }
