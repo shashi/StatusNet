@@ -188,7 +188,7 @@ class ShowprofiletagAction extends Action
     function showSections()
     {
         $this->showTagged();
-        $this->showSubscriptions();
+        $this->showSubscribers();
         # $this->showStatistics();
     }
 
@@ -208,7 +208,7 @@ class ShowprofiletagAction extends Action
     {
         $profile = $this->profile_tag->getTagged(0, PROFILES_PER_MINILIST + 1);
 
-        $this->elementStart('div', array('id' => 'entity_subscriptions',
+        $this->elementStart('div', array('id' => 'entity_tagged',
                                          'class' => 'section'));
         if (Event::handle('StartShowTaggedProfilesMiniList', array($this))) {
             $this->element('h2', null, $this->title());
@@ -238,14 +238,14 @@ class ShowprofiletagAction extends Action
         $this->elementEnd('div');
     }
 
-    function showSubscriptions()
+    function showSubscribers()
     {
         $profile = $this->profile_tag->getSubscribers(0, PROFILES_PER_MINILIST + 1);
 
-        $this->elementStart('div', array('id' => 'entity_subscriptions',
+        $this->elementStart('div', array('id' => 'entity_subscribers',
                                          'class' => 'section'));
-        if (Event::handle('StartShowProfileTagSubscriptionsMiniList', array($this))) {
-            $this->element('h2', null, _('Subscriptions'));
+        if (Event::handle('StartShowProfileTagSubscribersMiniList', array($this))) {
+            $this->element('h2', null, _('Subscribers'));
 
             $cnt = 0;
 
@@ -259,15 +259,15 @@ class ShowprofiletagAction extends Action
 
             if ($cnt > PROFILES_PER_MINILIST) {
                 $this->elementStart('p');
-                $this->element('a', array('href' => common_local_url('profiletagsubscriptions',
+                $this->element('a', array('href' => common_local_url('profiletagsubscribers',
                                                                      array('nickname' => $this->user->nickname,
                                                                            'profiletag' => $this->profile_tag->tag)),
                                           'class' => 'more'),
-                               _('All subscriptions'));
+                               _('All subscribers'));
                 $this->elementEnd('p');
             }
 
-            Event::handle('EndShowProfileTagSubscriptionsMiniList', array($this));
+            Event::handle('EndShowProfileTagSubscribersMiniList', array($this));
         }
         $this->elementEnd('div');
     }
