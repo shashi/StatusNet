@@ -792,10 +792,36 @@ class Router
                                 array('nickname' => '[a-zA-Z0-9]{1,64}'));
                 }
 
-                $m->connect(':nickname/all/:profiletag',
-                                array('action' => 'showprofiletag', 
-                                      'nickname' => '[a-zA-Z0-9]{1,64}',
-                                      'profiletag' => '[a-zA-Z0-9]{1,64}'));
+                // people tags
+                $m->connect(':tagger/peopletags',
+                                array('action' => 'tagsbyuser',
+                                      'tagger' => '[a-zA-Z0-9]{1,64}'));
+
+                $m->connect(':tagged/othertags',
+                                array('action' => 'tagsbyothers',
+                                      'tagged' => '[a-zA-Z0-9]{1,64}'));
+
+                $m->connect(':tagger/all/:tag/subscribers',
+                                array('action' => 'tagsubscribers',
+                                      'tagger' => '[a-zA-Z0-9]{1,64}',
+                                      'tag' => '[a-zA-Z0-9]{1,64}'));
+
+                $m->connect(':tagger/all/:tag/tagged',
+                                array('action' => 'taggedprofiles',
+                                      'tagger' => '[a-zA-Z0-9]{1,64}',
+                                      'tag' => '[a-zA-Z0-9]{1,64}'));
+
+                foreach(array('subscribe', 'unsubscribe', 'edit') as $v) {
+                    $m->connect(':tagger/all/:tag/'.$v,
+                                    array('action' => $v.'tag',
+                                          'tagger' => '[a-zA-Z0-9]{1,64}',
+                                          'tag' => '[a-zA-Z0-9]{1,64}'));
+                }
+
+                $m->connect(':tagger/all/:tag',
+                                array('action' => 'showprofiletag',
+                                      'tagger' => '[a-zA-Z0-9]{1,64}',
+                                      'tag' => '[a-zA-Z0-9]{1,64}'));
 
                 foreach (array('subscriptions', 'subscribers') as $a) {
                     $m->connect(':nickname/'.$a.'/:tag',
