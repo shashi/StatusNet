@@ -368,7 +368,7 @@ class Profile_list extends Memcached_DataObject
      * @returns list(array lists, int next_cursor, int previous_cursor)
      */
 
-    static function listsAtCursor($fn, $cursor, $count=20)
+    static function getListsAtCursor($fn, $cursor, $count=20)
     {
         $lists = array();
 

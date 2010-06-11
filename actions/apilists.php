@@ -64,7 +64,7 @@ class ApiListsAction extends ApiAuthAction
     {
         parent::handle($args);
 
-        if($_SERVER['REQUEST_METHOD'] == 'POST') {
+        if($this->create) {
             $this->handlePost();
             return true;
         }
