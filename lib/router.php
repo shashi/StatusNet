@@ -136,6 +136,11 @@ class Router
                 $m->connect('main/'.$a, array('action' => $a));
             }
 
+            // Also need a block variant accepting ID on URL for mail links
+            $m->connect('main/block/:profileid',
+                        array('action' => 'block'),
+                        array('profileid' => '[0-9]+'));
+
             $m->connect('main/sup/:seconds', array('action' => 'sup'),
                         array('seconds' => '[0-9]+'));
 
@@ -535,7 +540,7 @@ class Router
             $m->connect('api/favorites/:id.:format',
                         array('action' => 'ApiTimelineFavorites',
                               'id' => '[a-zA-Z0-9]+',
-                              'format' => '(xmljson|rss|atom)'));
+                              'format' => '(xml|json|rss|atom)'));
 
             $m->connect('api/favorites/create/:id.:format',
                         array('action' => 'ApiFavoriteCreate',
@@ -592,7 +597,7 @@ class Router
             $m->connect('api/statusnet/groups/timeline/:id.:format',
                         array('action' => 'ApiTimelineGroup',
                               'id' => '[a-zA-Z0-9]+',
-                              'format' => '(xmljson|rss|atom)'));
+                              'format' => '(xml|json|rss|atom)'));
 
             $m->connect('api/statusnet/groups/show.:format',
                         array('action' => 'ApiGroupShow',
@@ -681,7 +686,7 @@ class Router
             // Tags
             $m->connect('api/statusnet/tags/timeline/:tag.:format',
                         array('action' => 'ApiTimelineTag',
-                              'format' => '(xmljson|rss|atom)'));
+                              'format' => '(xml|json|rss|atom)'));
 
             // media related
             $m->connect(
