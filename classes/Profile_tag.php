@@ -78,20 +78,26 @@ class Profile_tag extends Memcached_DataObject
             }
 
             # Delete tag metadata if no one is tagged
-            Profile_list::cleanupTag($tagger, $deltag);
+            $profile_list = Profile_list::cleanupTag($tagger, $deltag);
+
+            if($profile_list) {
+                $profile_list->blowTaggedCount();
+            }
         }
 
         foreach ($to_insert as $instag) {
             $profile_tag->tag = $instag;
             $result = $profile_tag->insert();
 
-            # Add tag no one is tagged
-            Profile_list::ensureTag($tagger, $instag);
+            # Add if tag no one is tagged
+            $profile_list = Profile_list::ensureTag($tagger, $instag);
 
             if (!$result) {
                 common_log_db_error($profile_tag, 'INSERT', __FILE__);
                 return false;
             }
+
+            $profile_list->blowTaggedCount();
         }
 
         $profile_tag->query('COMMIT');

@@ -437,6 +437,25 @@ class ApiAction extends Action
         return $entry;
     }
 
+    function twitterListArray($list)
+    {
+        $profile = Profile::staticGet('id', $list->tagger);
+
+        $twitter_list = array();
+        $twitter_list['id'] = $list->id;
+        $twitter_list['name'] = $list->tag;
+        $twitter_list['full_name'] = '@'.$profile->nickname.'/'.$list->tag;;
+        $twitter_list['slug'] = $list->tag;
+        $twitter_list['description'] = $list->description;
+        $twitter_list['subscriber_count'] = $list->subscriberCount();
+        $twitter_list['member_count'] = $list->taggedCount();
+        $twitter_list['uri'] = $list->getUri();
+        $twitter_list['mode'] = 'public';
+        $twitter_list['user'] = $this->twitterUserArray($profile, false);
+
+        return $twitter_list;
+    }
+
     function twitterRssEntryArray($notice)
     {
         $profile = $notice->getProfile();
@@ -598,6 +617,20 @@ class ApiAction extends Action
             $this->element($element, null, $value);
         }
         $this->elementEnd('group');
+    }
+
+    function showTwitterXmlList($twitter_list)
+    {
+        $this->elementStart('list');
+        foreach($twitter_list as $element => $value) {
+            if($element == 'user') {
+                $this->showTwitterXmlUser($value, 'user');
+            }
+            else {
+                $this->element($element, null, $value);
+            }
+        }
+        $this->elementEnd('list');
     }
 
     function showTwitterXmlUser($twitter_user, $role='user')
@@ -1059,6 +1092,65 @@ class ApiAction extends Action
         $this->endDocument('xml');
     }
 
+    function showXmlLists($list, $next_cursor=0, $prev_cursor=0)
+    {
+
+        $this->initDocument('xml');
+        $this->elementStart('lists_list');
+        $this->elementStart('lists', array('type' => 'array'));
+
+        if (is_array($list)) {
+            foreach ($list as $l) {
+                $twitter_list = $this->twitterListArray($l);
+                $this->showTwitterXmlList($twitter_list);
+            }
+        } else {
+            while ($list->fetch()) {
+                $twitter_list = $this->twitterListArray($list);
+                $this->showTwitterXmlList($twitter_list);
+            }
+        }
+
+        $this->elementEnd('lists');
+
+        $this->element('next_cursor', null, $next_cursor);
+        $this->element('previous_cursor', null, $prev_cursor);
+
+        $this->elementEnd('lists_list');
+        $this->endDocument('xml');
+    }
+
+    function showJsonLists($list, $next_cursor=0, $prev_cursor=0)
+    {
+        $this->initDocument('json');
+
+        $lists = array();
+
+        if (is_array($list)) {
+            foreach ($list as $l) {
+                $twitter_list = $this->twitterListArray($l);
+                array_push($lists, $twitter_list);
+            }
+        } else {
+            while ($group->fetch()) {
+                $twitter_list = $this->twitterListArray($list);
+                array_push($lists, $twitter_list);
+            }
+        }
+
+        $lists_list = array(
+            'lists' => $lists,
+            'next_cursor' => $next_cursor,
+            'next_cursor_str' => strval($next_cursor),
+            'previous_cursor' => $previous_cursor,
+            'previous_cursor_str' => strval($previous_cursor)
+        );
+
+        $this->showJsonObjects($lists_list);
+
+        $this->endDocument('json');
+    }
+
     function showTwitterXmlUsers($user)
     {
 
@@ -1118,6 +1210,14 @@ class ApiAction extends Action
         $this->initDocument('xml');
         $twitter_group = $this->twitterGroupArray($group);
         $this->showTwitterXmlGroup($twitter_group);
+        $this->endDocument('xml');
+    }
+
+    function showSingleXmlList($list)
+    {
+        $this->initDocument('xml');
+        $twitter_list = $this->twitterListArray($list);
+        $this->showTwitterXmlList($twitter_list);
         $this->endDocument('xml');
     }
 
@@ -1379,6 +1479,29 @@ class ApiAction extends Action
                 return User_group::staticGet('id', $local->group_id);
             }
         }
+    }
+
+    function getTargetList($user=null, $id=null)
+    {
+        $tagger = $this->getTargetUser($user);
+
+        if (empty($id)) {
+            $id = $this->arg('id');
+        }
+
+        if($id) {
+            if (is_numeric($id)) {
+                $list = Profile_list::staticGet('id', $id);
+                // only if the list with the id belongs to the tagger
+                if($list->tagger == $tagger->id) {
+                    return $list;
+                }
+            }
+            $tag = common_canonical_tag($id);
+            $list = Profile_list::getByTaggerAndTag($tagger->id, $tag);
+            return $list;
+        }
+        return null;
     }
 
     /**

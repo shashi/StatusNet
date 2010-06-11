@@ -175,6 +175,71 @@ class Profile_list extends Memcached_DataObject
         return $members;
     }
 
+    function subscriberCount()
+    {
+        $c = common_memcache();
+        if (!empty($c)) {
+            $cnt = $c->get(common_cache_key('profile_list:subscriber_count:'.$this->id));
+            if (is_integer($cnt)) {
+                return (int) $cnt;
+            }
+        }
+
+        $sub = new Profile_tag_subscription();
+        $sub->profile_tag_id = $this->id;
+
+        $cnt = (int) $sub->count('distinct profile_id');
+
+        $cnt = ($cnt > 0) ? $cnt - 1 : $cnt;
+
+        if (!empty($c)) {
+            $c->set(common_cache_key('profile_list:subscriber_count:'.$this->id), $cnt);
+        }
+
+        return $cnt;
+    }
+
+    function blowSubscriberCount()
+    {
+        $c = common_memcache();
+        if (!empty($c)) {
+            $c->delete(common_cache_key('profile_list:subscriber_count:'.$this->id));
+        }
+    }
+
+    function taggedCount()
+    {
+        $c = common_memcache();
+        if (!empty($c)) {
+            $cnt = $c->get(common_cache_key('profile_list:tagged_count:'.$this->id));
+            if (is_integer($cnt)) {
+                return (int) $cnt;
+            }
+        }
+
+        $tag = new Profile_tag();
+        $tag->tag = $this->tag;
+        $tag->tagger = $this->tagger;
+
+        $cnt = (int) $tag->count('distinct tagged');
+
+        $cnt = ($cnt > 0) ? $cnt - 1 : $cnt;
+
+        if (!empty($c)) {
+            $c->set(common_cache_key('profile:tagged_count:'.$this->id), $cnt);
+        }
+
+        return $cnt;
+    }
+
+    function blowTaggedCount()
+    {
+        $c = common_memcache();
+        if (!empty($c)) {
+            $c->delete(common_cache_key('profile_list:tagged_count:'.$this->id));
+        }
+    }
+
     static function getByTaggerAndTag($tagger, $tag)
     {
         $ptag = Profile_list::pkeyGet(array('tagger' => $tagger, 'tag' => $tag));
@@ -201,7 +266,7 @@ class Profile_list extends Memcached_DataObject
     }
 
     /* if there isn't use for a tag, delete it. Should be called after an untag
-       return true if deleted.
+       return the object if not deleted, false if deleted.
     */
     static function cleanupTag($tagger, $tag)
     {
@@ -213,11 +278,11 @@ class Profile_list extends Memcached_DataObject
             $result = $del_tag->delete();
             if (!$result) {
                 common_log_db_error($del_tag, 'DELETE', __FILE__);
-                return false;
+                return Profile_list::getByTaggerAndTag($tagger, $tag);
             }
-            return true;
+            return false;
         }
-        return false;
+        return Profile_list::getByTaggerAndTag($tagger, $tag);
     }
 
     static function maxDescription()
