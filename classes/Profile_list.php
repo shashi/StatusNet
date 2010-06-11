@@ -247,19 +247,19 @@ class Profile_list extends Memcached_DataObject
     }
 
     /* create the tag if it does not exist, return it */
-    static function ensureTag($tagger, $tag)
+    static function ensureTag($tagger, $tag, $description=null)
     {
         $ptag = Profile_list::getByTaggerAndTag($tagger, $tag);
 
         if(empty($ptag->id)) {
-            $new_tag = new Profile_list();
-            $new_tag->tagger = $tagger;
-            $new_tag->tag = $tag;
-            $result = $new_tag->insert();
-            if (!$result) {
-                common_log_db_error($new_tag, 'INSERT', __FILE__);
-                return false;
-            }
+            $args = array(
+                'tag' => $tag,
+                'tagger' => $tagger,
+                'description' => $description
+            );
+
+            $new_tag = new Profile_list::saveNew($args);
+
             return $new_tag;
         }
         return $ptag;
@@ -301,9 +301,7 @@ class Profile_list extends Memcached_DataObject
         return ($desclimit > 0 && !empty($desc) && (mb_strlen($desc) > $desclimit));
     }
 
-    static function register($fields) {
-
-        // MAGICALLY put fields into current scope
+    static function saveNew($fields) {
 
         extract($fields);
 
@@ -316,12 +314,17 @@ class Profile_list extends Memcached_DataObject
             $uri = null;
         }
 
-        $ptag->user_id     = $user_id;
+        if (empty($mainpage)) {
+            $mainpage = null;
+        }
+
+        $ptag->tagger      = $tagger;
         $ptag->tag         = $tag;
         $ptag->description = $description;
         $ptag->uri         = $uri;
         $ptag->mainpage    = $mainpage;
         $ptag->created     = common_sql_now();
+        $ptag->modified    = common_sql_now();
 
         $result = $ptag->insert();
 
@@ -332,12 +335,105 @@ class Profile_list extends Memcached_DataObject
 
         if (!isset($uri) || empty($uri)) {
             $orig = clone($ptag);
-            $ptag->uri = common_local_url('profiletagbyid', array('id' => $ptag->id));
+            $ptag->uri = common_local_url('profiletagbyid', array('id' => $ptag->id, 'tagger_id' => $ptag->tagger));
             $result = $ptag->update($orig);
             if (!$result) {
                 common_log_db_error($ptag, 'UPDATE', __FILE__);
-                throw new ServerException(_('Could not set people tag URI.'));
+                throw new ServerException(_('Could not set profile tag URI.'));
             }
+        }
+
+        if (!isset($mainpage) || empty($mainpage)) {
+            $orig = clone($ptag);
+            $user = User::staticGet('id', $ptag->tagger);
+            if(!empty($user) {
+                $ptag->mainpage = common_local_url('showprofiletag', array('tag' => $ptag->tag, 'tagger' => $user->nickname));
+            }
+            $result = $ptag->update($orig);
+            if (!$result) {
+                common_log_db_error($ptag, 'UPDATE', __FILE__);
+                throw new ServerException(_('Could not set profile tag mainpage.'));
+            }
+        }
+        return $ptag;
+    }
+
+    /**
+     * get all lists at given cursor position for api
+     *
+     * $fn is a function that takes the following arguments in order:
+     *      $offset, $limit, $since_id, $max_id
+     * and returns a Profile_list object after making the DB query
+     *
+     * @returns list(array lists, int next_cursor, int previous_cursor)
+     */
+
+    static function listsAtCursor($fn, $cursor, $count=20)
+    {
+        $lists = array();
+
+        $since_id = 0;
+        $max_id = 0;
+        $next_cursor = 0;
+        $prev_cursor = 0;
+
+        // if cursor is zero show an empty list
+        if ($cursor=0) {
+            return list(array(), 0, 0);
+        }else if($cursor > 0) {
+            // if cursor is +ve fetch $count+1 lists before cursor,
+            $max_id = $cursor;
+            $list = call_user_func($fn, 0, $count+1, 0, $max_id);
+            while($list->fetch()) {
+                $lists[] = clone($list);
+            }
+
+            if(count($lists)==$count+1) {
+                $next = array_pop($lists);
+                $next_cursor = $next->id;
+            }
+
+            $prev = call_user_fucnc($fn, 0, 1, $cursor);
+            if($list->fetch()) {
+                $prev_cursor = -1*$list->id;
+            }
+
+            return list($lists, $next_cursor, $prev_cursor);
+        }
+        else if($cursor < -1) {
+            // if cursor is -ve fetch $count+2 lists created after cursor-1,
+            $since_id = abs($cursor)-1;
+
+            $list = call_user_func(0, $count+2, $since_id);
+            while($list->fetch())
+                $lists[] = clone($list);
+            }
+
+            if($lists[count($lists)-1]->id == $cursor) {
+                // this means there exists a next page
+                $next = array_pop($lists);
+                $next_cursor = $next->id;
+            }
+
+            if(count($lists) == $count+1) {
+                $prev = array_shift($lists);
+                $prev_cursor = -1*$prev->id;
+            }
+            return list($lists, $next_cursor, $prev_cursor);
+        }
+        else if($cursor == -1) {
+            $list = call_user_func(0, $count+1);
+
+            while($list->fetch())
+                $lists[] = clone($list);
+            }
+
+            if(count($lists)==$count+1) {
+                $next = array_pop($lists);
+                $next_cursor = $next->id;
+            }
+
+            return list($lists, $next_cursor, $prev_cursor);
         }
     }
 }

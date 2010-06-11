@@ -839,6 +839,10 @@ class Router
                                           'tagger' => '[a-zA-Z0-9]{1,64}',
                                           'tag' => '[a-zA-Z0-9]{1,64}'));
                 }
+                $m->connect('user/:tagger_id/profiletag/:id/id',
+                                array('action' => 'profiletagbyid',
+                                      'tagger_id' => '[0-9]+',
+                                      'id' => '[0-9]+'));
 
                 $m->connect(':tagger/all/:tag',
                                 array('action' => 'showprofiletag',
