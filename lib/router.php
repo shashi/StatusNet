@@ -656,6 +656,28 @@ class Router
                               'id' => '[a-zA-Z0-9]+',
                               'format' => '(xml|json)'));
 
+            // Lists (people tags)
+            $m->connect('api/:user/lists.:format',
+                        array('action' => 'ApiLists',
+                              'user' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/lists.:format',
+                        array('action' => 'ApiLists',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/:user/lists/:id.:format',
+                        array('action' => 'ApiList',
+                              'user' => '[a-zA-Z0-9]+',
+                              'id' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/:user/lists/:id/statuses.:format',
+                        array('action' => 'ApiListTimeline',
+                              'user' => '[a-zA-Z0-9]+',
+                              'id' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json|rss|atom)'));
+
             // Tags
             $m->connect('api/statusnet/tags/timeline/:tag.:format',
                         array('action' => 'ApiTimelineTag',
