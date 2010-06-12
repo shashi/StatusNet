@@ -93,7 +93,7 @@ class ApiListsAction extends ApiAuthAction
 
     function handlePost()
     {
-        $name=$this->args('name');
+        $name=$this->arg('name');
         if(empty($name)) {
             // mimick twitter
             print _("A list's name can't be blank.");
@@ -103,9 +103,9 @@ class ApiListsAction extends ApiAuthAction
         // twitter creates a new list by appending a number to the end
         // if the list by the given name already exists
         // it makes more sense to return the existing list instead
-        $list = Profile_list::ensureTag($this->args('name'),
-                                        $this->auth_user->id,
-                                        $this->args('description'));
+        $list = Profile_list::ensureTag($this->auth_user->id,
+                                        $this->arg('name'),
+                                        $this->arg('description'));
 
         switch($this->format) {
         case 'xml':

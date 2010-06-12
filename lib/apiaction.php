@@ -1236,6 +1236,14 @@ class ApiAction extends Action
         $this->endDocument('xml');
     }
 
+    function showSingleJsonList($list)
+    {
+        $this->initDocument('json');
+        $twitter_list = $this->twitterListArray($list);
+        $this->showJsonObjects($twitter_list);
+        $this->endDocument('json');
+    }
+
     function showSingleXmlList($list)
     {
         $this->initDocument('xml');

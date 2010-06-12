@@ -662,13 +662,13 @@ class Router
                               'format' => '(xml|json)'));
 
             // Lists (people tags)
+            $m->connect('api/lists.:format',
+                        array('action' => 'ApiLists',
+                              'format' => '(xml|json)'));
+
             $m->connect('api/:user/lists.:format',
                         array('action' => 'ApiLists',
                               'user' => '[a-zA-Z0-9]+',
-                              'format' => '(xml|json)'));
-
-            $m->connect('api/lists.:format',
-                        array('action' => 'ApiLists',
                               'format' => '(xml|json)'));
 
             $m->connect('api/:user/lists/:id.:format',
