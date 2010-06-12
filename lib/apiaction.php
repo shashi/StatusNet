@@ -1154,7 +1154,7 @@ class ApiAction extends Action
                 array_push($lists, $twitter_list);
             }
         } else {
-            while ($group->fetch()) {
+            while ($list->fetch()) {
                 $twitter_list = $this->twitterListArray($list);
                 array_push($lists, $twitter_list);
             }
@@ -1164,8 +1164,8 @@ class ApiAction extends Action
             'lists' => $lists,
             'next_cursor' => $next_cursor,
             'next_cursor_str' => strval($next_cursor),
-            'previous_cursor' => $previous_cursor,
-            'previous_cursor_str' => strval($previous_cursor)
+            'previous_cursor' => $prev_cursor,
+            'previous_cursor_str' => strval($prev_cursor)
         );
 
         $this->showJsonObjects($lists_list);

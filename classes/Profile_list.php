@@ -38,7 +38,7 @@ class Profile_list extends Memcached_DataObject
                 $uri = $this->uri;
             } else {
                 $uri = common_local_url('profiletagbyid',
-                                        array('id' => $this->id));
+                                        array('id' => $this->id, 'tagger_id' => $this->tagger));
             }
         }
         Event::handle('EndProfiletagGetUri', array($this, &$uri));
@@ -258,7 +258,7 @@ class Profile_list extends Memcached_DataObject
                 'description' => $description
             );
 
-            $new_tag = new Profile_list::saveNew($args);
+            $new_tag = Profile_list::saveNew($args);
 
             return $new_tag;
         }
@@ -346,7 +346,7 @@ class Profile_list extends Memcached_DataObject
         if (!isset($mainpage) || empty($mainpage)) {
             $orig = clone($ptag);
             $user = User::staticGet('id', $ptag->tagger);
-            if(!empty($user) {
+            if(!empty($user)) {
                 $ptag->mainpage = common_local_url('showprofiletag', array('tag' => $ptag->tag, 'tagger' => $user->nickname));
             }
             $result = $ptag->update($orig);
@@ -365,7 +365,7 @@ class Profile_list extends Memcached_DataObject
      *      $offset, $limit, $since_id, $max_id
      * and returns a Profile_list object after making the DB query
      *
-     * @returns list(array lists, int next_cursor, int previous_cursor)
+     * @returns array(array lists, int next_cursor, int previous_cursor)
      */
 
     static function getListsAtCursor($fn, $cursor, $count=20)
@@ -378,9 +378,9 @@ class Profile_list extends Memcached_DataObject
         $prev_cursor = 0;
 
         // if cursor is zero show an empty list
-        if ($cursor=0) {
-            return list(array(), 0, 0);
-        }else if($cursor > 0) {
+        if ($cursor==0) {
+            return array(array(), 0, 0);
+        } else if($cursor > 0) {
             // if cursor is +ve fetch $count+1 lists before cursor,
             $max_id = $cursor;
             $list = call_user_func($fn, 0, $count+1, 0, $max_id);
@@ -393,19 +393,20 @@ class Profile_list extends Memcached_DataObject
                 $next_cursor = $next->id;
             }
 
+            // and one list after cursor
             $prev = call_user_fucnc($fn, 0, 1, $cursor);
-            if($list->fetch()) {
-                $prev_cursor = -1*$list->id;
+            while($prev->fetch()) {
+                $prev_cursor = -1*$lists[0]->id;
             }
 
-            return list($lists, $next_cursor, $prev_cursor);
-        }
-        else if($cursor < -1) {
+            return array($lists, $next_cursor, $prev_cursor);
+
+        } else if($cursor < -1) {
             // if cursor is -ve fetch $count+2 lists created after cursor-1,
             $since_id = abs($cursor)-1;
 
-            $list = call_user_func(0, $count+2, $since_id);
-            while($list->fetch())
+            $list = call_user_func($fn, 0, $count+2, $since_id);
+            while($list->fetch()) {
                 $lists[] = clone($list);
             }
 
@@ -419,12 +420,12 @@ class Profile_list extends Memcached_DataObject
                 $prev = array_shift($lists);
                 $prev_cursor = -1*$prev->id;
             }
-            return list($lists, $next_cursor, $prev_cursor);
+            return array($lists, $next_cursor, $prev_cursor);
         }
         else if($cursor == -1) {
-            $list = call_user_func(0, $count+1);
+            $list = call_user_func($fn, 0, $count+1);
 
-            while($list->fetch())
+            while($list->fetch()) {
                 $lists[] = clone($list);
             }
 
@@ -433,7 +434,7 @@ class Profile_list extends Memcached_DataObject
                 $next_cursor = $next->id;
             }
 
-            return list($lists, $next_cursor, $prev_cursor);
+            return array($lists, $next_cursor, $prev_cursor);
         }
     }
 }

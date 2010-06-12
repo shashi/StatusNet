@@ -53,8 +53,7 @@ class ApiListsAction extends ApiAuthAction
                 $this->clientError(_('No such user.'), 404, $this->format);
                 return false;
             }
-
-            list($this->lists, $this->next_cursor, $this->prev_cursor) = $this->getLists();
+            $this->getLists();
         }
 
         return true;
@@ -71,10 +70,10 @@ class ApiListsAction extends ApiAuthAction
 
         switch($this->format) {
         case 'xml':
-            $this->showXmlLists($this->lists);
+            $this->showXmlLists($this->lists, $this->next_cursor, $this->prev_cursor);
             break;
         case 'json':
-            $this->showJsonLists($this->lists);
+            $this->showJsonLists($this->lists, $this->next_cursor, $this->prev_cursor);
             break;
         default:
             $this->clientError(
@@ -94,7 +93,8 @@ class ApiListsAction extends ApiAuthAction
 
     function handlePost()
     {
-        if(empty($this->args('name'))) {
+        $name=$this->args('name');
+        if(empty($name)) {
             // mimick twitter
             print _("A list's name can't be blank.");
             exit(1);
@@ -135,8 +135,11 @@ class ApiListsAction extends ApiAuthAction
         // twitter fixes count at 20
         // there is no argument named count
         $count = 20;
-        $fn = array($this->user, 'getOwnedTags');
-        $this->lists = Profile_list::getListsAtCursor($fn, $cursor, $count);
+        $profile = $this->user->getProfile();
+        $fn = array($profile, 'getOwnedTags');
+        list($this->lists,
+             $this->next_cursor,
+             $this->prev_cursor) = Profile_list::getListsAtCursor($fn, $cursor, $count);
     }
 
     function isReadOnly($args)
@@ -176,7 +179,7 @@ class ApiListsAction extends ApiAuthAction
                       strtotime($this->lists[0]->created),
                       strtotime($this->lists[$last]->created))
             )
-            . '"';g
+            . '"';
         }
 
         return null;
