@@ -4,3 +4,13 @@ mysql -u dbuser --password=password dbname < db/peopletags.sql
 
 WARNING: you'll need to run scripts/rebuilddb.sh to use other branches
 More on http://status.net/wiki/Lists
+
+BUGS
+====
+
+common_local_url('ApiTimelineList',
+                 array('user' => $nickname,
+                       'id' => $tag,
+                       'format' => 'atom'));
+
+is not working. But requests resolve correctly
