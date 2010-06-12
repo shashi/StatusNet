@@ -240,6 +240,36 @@ class Profile_list extends Memcached_DataObject
         }
     }
 
+    function delete()
+    {
+        Profile_tag::deleteTag($this->tagger, $this->tag);
+        parent::delete();
+    }
+
+    function update($orig=null)
+    {
+        $result = true;
+
+        if (!is_object($orig) && !$orig instanceof Profile_list) {
+            parent::update($orig);
+        }
+
+        // if original tag was different
+        // check to see if the new tag already exists
+        // if not, rename the tag correctly
+        if($orig->tag != $this->tag || $orig->tagger != $this->tagger) {
+            $existing = Profile_list::getByTaggerAndTag($this->tagger, $this->tag);
+            if(!empty($existing)) {
+                throw new ServerException(_('The tag you are trying to rename ' .
+                                            'to already exists.'));
+            }
+            // move the tag
+            $result = Profile_tag::moveTag($orig->tag, $this->tag, $orig->tagger, $this->tagger);
+        }
+        parent::update($orig);
+        return $result;
+    }
+
     static function getByTaggerAndTag($tagger, $tag)
     {
         $ptag = Profile_list::pkeyGet(array('tagger' => $tagger, 'tag' => $tag));

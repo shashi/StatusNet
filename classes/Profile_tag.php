@@ -119,4 +119,34 @@ class Profile_tag extends Memcached_DataObject
         }
         return $tagged;
     }
+
+    static function deleteTag($tagger, $tag) {
+        $tags = new Profile_tag();
+        $tags->tagger = $tagger;
+        $tags->tag = $tag;
+        $result = $tags->delete();
+
+        if (!$result) {
+            common_log_db_error($tags, 'DELETE', __FILE__);
+            return false;
+        }
+        return true;
+    }
+
+    // move a tag!
+    static function moveTag($orig_tag, $new_tag, $orig_tagger, $new_tagger) {
+        $tags = new Profile_tag();
+        $qry = 'UPDATE profile_tag SET ' .
+               'tag = "%s", tagger = "%s" ' .
+               'WHERE tag = "%s" ' .
+               'AND tagger = "%s"';
+        $result = $tags->query(sprintf($qry, $new_tag, $new_tagger,
+                                             $orig_tag, $orig_tagger));
+
+        if (!$result) {
+            common_log_db_error($tags, 'UPDATE', __FILE__);
+            return false;
+        }
+        return true;
+    }
 }
