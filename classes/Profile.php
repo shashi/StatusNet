@@ -345,20 +345,13 @@ class Profile extends Memcached_DataObject
     {
         $tags = new Profile_list();
         $tags->tagger = $this->id;
-        $where = false;
 
         if ($since_id>0) {
-           $tags->where('id > '.$since_id);
-           $where = true;
+           $tags->whereAdd('id > '.$since_id);
         }
 
         if ($max_id>0) {
-            if($where) {
-                $tags->whereAdterd('id <= '.$max_id);
-            }
-            else {
-                $tags->where('id <= '.$max_id);
-            }
+            $tags->whereAdd('id <= '.$max_id);
         }
 
         if($offset>=0 && !is_null($limit)) {
@@ -369,6 +362,16 @@ class Profile extends Memcached_DataObject
         $tags->find();
 
         return $tags;
+    }
+
+    function getOtherTags($offset=0, $limit=null, $since_id=0, $max_id=0)
+    {
+        # how do i page?
+    }
+
+    function getTagSubscriptions($offset=0, $limit=null, $since_id=0, $max_id=0)
+    {
+        # how do i page?
     }
 
     function avatarUrl($size=AVATAR_PROFILE_SIZE)
