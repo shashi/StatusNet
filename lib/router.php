@@ -662,6 +662,24 @@ class Router
                               'format' => '(xml|json)'));
 
             // Lists (people tags)
+
+            $m->connect('api/lists/memberships.:format',
+                        array('action' => 'ApiListMemberships',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/:user/lists/memberships.:format',
+                        array('action' => 'ApiListMemberships',
+                              'user' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/lists/subscriptions.:format',
+                        array('action' => 'ApiListSubscriptions',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/:user/lists/subscriptions.:format',
+                        array('action' => 'ApiListSubscriptions',
+                              'user' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
             $m->connect('api/lists.:format',
                         array('action' => 'ApiLists',
                               'format' => '(xml|json)'));
@@ -682,24 +700,6 @@ class Router
                               'user' => '[a-zA-Z0-9]+',
                               'id' => '[a-zA-Z0-9]+',
                               'format' => '(xml|json|rss|atom)'));
-
-            $m->connect('api/lists/memberships.:format',
-                        array('action' => 'ApiListMemberships',
-                              'format' => '(xml|json)'));
-
-            $m->connect('api/:user/lists/memberships.:format',
-                        array('action' => 'ApiListMemberships',
-                              'user' => '[a-zA-Z0-9]+',
-                              'format' => '(xml|json)'));
-
-            $m->connect('api/lists/subscriptions.:format',
-                        array('action' => 'ApiListMemberships',
-                              'format' => '(xml|json)'));
-
-            $m->connect('api/:user/lists/subscriptions.:format',
-                        array('action' => 'ApiListMemberships',
-                              'user' => '[a-zA-Z0-9]+',
-                              'format' => '(xml|json)'));
 
             // Tags
             $m->connect('api/statusnet/tags/timeline/:tag.:format',

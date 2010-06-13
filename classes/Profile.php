@@ -346,6 +346,8 @@ class Profile extends Memcached_DataObject
         $tags = new Profile_list();
         $tags->tagger = $this->id;
 
+        $tags->selectAdd('id as "cursor"');
+
         if ($since_id>0) {
            $tags->whereAdd('id > '.$since_id);
         }
@@ -366,12 +368,63 @@ class Profile extends Memcached_DataObject
 
     function getOtherTags($offset=0, $limit=null, $since_id=0, $max_id=0)
     {
-        # how do i page?
+        $lists = new Profile_list();
+        $tags = new Profile_tag();
+        $cursor_field = '';
+
+        $lists->joinAdd($tags);
+        #@fixme: postgres (round(date_part('epoch', my_date)))
+        $lists->selectAdd('unix_timestamp(profile_tag.modified) as "cursor"');
+
+        $lists->whereAdd('profile_tag.tagged = '.$this->id);
+        # don't want self tags.
+        $lists->whereAdd('profile_tag.tagger != '.$this->id);
+
+        if ($since_id>0) {
+           $lists->whereAdd('cursor > '.$since_id);
+        }
+
+        if ($max_id>0) {
+            $lists->whereAdd('cursor <= '.$max_id);
+        }
+
+        if($offset>=0 && !is_null($limit)) {
+            $lists->limit($offset, $limit);
+        }
+
+        $lists->orderBy('"cursor" DESC');
+        $lists->find();
+
+        return $lists;
     }
 
     function getTagSubscriptions($offset=0, $limit=null, $since_id=0, $max_id=0)
     {
-        # how do i page?
+        $lists = new Profile_list();
+        $subs = new Profile_tag_subscription();
+
+        $lists->joinAdd($subs);
+        #@fixme: postgres (round(date_part('epoch', my_date)))
+        $lists->selectAdd('unix_timestamp(profile_tag_subscription.created) as "cursor"');
+
+        $lists->whereAdd('profile_tag_subscription.profile_id = '.$this->id);
+
+        if ($since_id>0) {
+           $lists->whereAdd('cursor > '.$since_id);
+        }
+
+        if ($max_id>0) {
+            $lists->whereAdd('cursor <= '.$max_id);
+        }
+
+        if($offset>=0 && !is_null($limit)) {
+            $lists->limit($offset, $limit);
+        }
+
+        $lists->orderBy('"cursor" DESC');
+        $lists->find();
+
+        return $lists;
     }
 
     function avatarUrl($size=AVATAR_PROFILE_SIZE)

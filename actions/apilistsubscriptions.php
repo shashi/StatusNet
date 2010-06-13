@@ -2,7 +2,7 @@
 /**
  * StatusNet, the distributed open-source microblogging tool
  *
- * Get a list of lists a user belongs to.
+ * Get a list of lists a user is subscribed to.
  *
  * PHP version 5
  *
@@ -33,7 +33,7 @@ if (!defined('STATUSNET')) {
 
 require_once INSTALLDIR . '/lib/apibareauth.php';
 
-class ApiListMembershipsAction extends ApiBareAuthAction
+class ApiListSubscriptionsAction extends ApiBareAuthAction
 {
     var $lists = array();
     var $cursor = -1;
@@ -118,7 +118,7 @@ class ApiListMembershipsAction extends ApiBareAuthAction
         }
 
         $profile = $this->user->getProfile();
-        $fn = array($profile, 'getOtherTags');
+        $fn = array($profile, 'getTagSubscriptions');
         # 20 lists
         list($this->lists, $this->next_cursor, $this->prev_cursor) =
                 Profile_list::getListsAtCursor($fn, $this->cursor, 20);
