@@ -22,6 +22,10 @@ class Profile_tag extends Memcached_DataObject
     /* the code above is auto generated do not remove the tag below */
     ###END_AUTOCODE
 
+    function pkeyGet($kv) {
+        return Memcached_DataObject::pkeyGet('Profile_tag', $kv);
+    }
+
     function links()
     {
         return array('tagger,tag' => 'profile_list:tagger,tag');
@@ -103,6 +107,37 @@ class Profile_tag extends Memcached_DataObject
         $profile_tag->query('COMMIT');
 
         return true;
+    }
+
+    # set a single tag
+    static function setTag($tagger, $tagged, $tag) {
+
+        $ptag = Profile_tag::pkeyGet(array('tagger' => $tagger,
+                                           'tagged' => $tagged,
+                                           'tag' => $tag));
+
+        # if tag already exists, return it
+        if(!empty($ptag)) {
+            return $ptag;
+        }
+
+        $profile_list = Profile_list::ensureTag($tagger, $tag);
+
+        $newtag = new Profile_tag();
+
+        $newtag->tagger = $tagger;
+        $newtag->tagged = $tagged;
+        $newtag->tag = $tag;
+
+        $result = $newtag->insert();
+        if (!$result) {
+            common_log_db_error($newtag, 'INSERT', __FILE__);
+            return false;
+        }
+
+        $profile_list->blowTaggedCount();
+
+        return $newtag;
     }
 
     # Return profiles with a given tag

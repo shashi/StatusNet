@@ -701,6 +701,32 @@ class Router
                               'id' => '[a-zA-Z0-9]+',
                               'format' => '(xml|json|rss|atom)'));
 
+            $m->connect('api/:user/:list_id/members.:format',
+                        array('action' => 'ApiListMembers',
+                              'user' => '[a-zA-Z0-9]+',
+                              'list_id' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/:user/:list_id/subscribers.:format',
+                        array('action' => 'ApiListSubscribers',
+                              'user' => '[a-zA-Z0-9]+',
+                              'list_id' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/:user/:list_id/members/:id.:format',
+                        array('action' => 'ApiListMember',
+                              'user' => '[a-zA-Z0-9]+',
+                              'list_id' => '[a-zA-Z0-9]+',
+                              'id' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/:user/:list_id/subscribers/:id.:format',
+                        array('action' => 'ApiListSubscriber',
+                              'user' => '[a-zA-Z0-9]+',
+                              'list_id' => '[a-zA-Z0-9]+',
+                              'id' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
+
             // Tags
             $m->connect('api/statusnet/tags/timeline/:tag.:format',
                         array('action' => 'ApiTimelineTag',

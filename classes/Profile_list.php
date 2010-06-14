@@ -151,28 +151,32 @@ class Profile_list extends Memcached_DataObject
         return $ids;
     }
 
-    function getTagged($offset=0, $limit=null)
+    function getTagged($offset=0, $limit=null, $since=0, $upto=0)
     {
-        $qry =
-          'SELECT profile.* ' .
-          'FROM profile JOIN profile_tag '.
-          'ON profile.id = profile_tag.tagged ' .
-          'WHERE profile_tag.tagger = %d ' .
-          'AND profile_tag.tag = "%s" ' .
-          'ORDER BY profile_tag.modified DESC ';
+        $tagged = new Profile();
+        $tagged->joinAdd(array('id', 'profile_tag:tagged'));
 
-        if ($limit != null) {
-            if (common_config('db','type') == 'pgsql') {
-                $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
-            } else {
-                $qry .= ' LIMIT ' . $offset . ', ' . $limit;
-            }
+        #@fixme: postgres
+        $tagged->selectAdd('unix_timestamp(profile_tag.modified) as "cursor"');
+        $tagged->whereAdd('profile_tag.tagger = '.$this->tagger);
+        $tagged->whereAdd("profile_tag.tag = '{$this->tag}'");
+
+        if ($since != 0) {
+            $inbox->whereAdd('cursor > ' . $since);
         }
 
-        $members = new Profile();
+        if ($upto != 0) {
+            $inbox->whereAdd('cursor <= ' . $upto);
+        }
 
-        $members->query(sprintf($qry, $this->tagger, $this->tag));
-        return $members;
+        if ($limit != null) {
+            $tagged->limit($offset, $limit);
+        }
+
+        $tagged->orderBy('"cursor" DESC');
+        $tagged->find();
+
+        return $tagged;
     }
 
     function subscriberCount()
