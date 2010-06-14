@@ -29,11 +29,17 @@ class Profile_tag_subscription extends Memcached_DataObject
 
     static function add($profile_tag_id, $profile_id)
     {
-        $sub = new Profile_tag_subscription();
+        $args = array('profile_tag_id' => $profile_tag_id,
+                      'profile_id' => $profile_id);
+        $existing = Profile_tag_subscription::pkeyGet($args);
+        if(!empty($existing)) {
+            return $existing;
+        }
 
-        $sub->profile_tag_id   = $profile_tag_id;
+        $sub = new Profile_tag_subscription();
+        $sub->profile_tag_id = $profile_tag_id;
         $sub->profile_id = $profile_id;
-        $sub->created    = common_sql_now();
+        $sub->created = common_sql_now();
 
         $result = $sub->insert();
 
@@ -44,7 +50,7 @@ class Profile_tag_subscription extends Memcached_DataObject
 
         $ptag = Profile_list::staticGet('id', $profile_tag_id);
         $ptag->blowSubscriberCount();
-        return true;
+        return $ptag;
     }
 
     static function remove($profile_tag_id, $profile_id)

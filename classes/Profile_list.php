@@ -100,26 +100,31 @@ class Profile_list extends Memcached_DataObject
         return $ids;
     }
 
-    function getSubscribers($offset=0, $limit=null)
+    function getSubscribers($offset=0, $limit=null, $since=0, $upto=0)
     {
-        $qry =
-          'SELECT profile.* ' .
-          'FROM profile JOIN profile_tag_subscription '.
-          'ON profile.id = profile_tag_subscription.profile_id ' .
-          'WHERE profile_tag_subscription.profile_tag_id = %d ' .
-          'ORDER BY profile_tag_subscription.created DESC ';
+        $subs = new Profile();
+        $sub = new Profile_tag_subscription();
+        $sub->profile_tag_id = $this->id;
 
-        if ($limit != null) {
-            if (common_config('db','type') == 'pgsql') {
-                $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
-            } else {
-                $qry .= ' LIMIT ' . $offset . ', ' . $limit;
-            }
+        $subs->joinAdd($sub);
+        $subs->selectAdd('unix_timestamp(profile_tag_subscription.' .
+                         'created) as "cursor"');
+
+        if ($since != 0) {
+            $subs->whereAdd('cursor > ' . $since);
         }
 
-        $subs = new Profile();
+        if ($upto != 0) {
+            $subs->whereAdd('cursor <= ' . $upto);
+        }
 
-        $subs->query(sprintf($qry, $this->id));
+        if ($limit != null) {
+            $subs->limit($offset, $limit);
+        }
+
+        $subs->orderBy('"cursor" DESC');
+        $subs->find();
+
         return $subs;
     }
 
@@ -162,11 +167,11 @@ class Profile_list extends Memcached_DataObject
         $tagged->whereAdd("profile_tag.tag = '{$this->tag}'");
 
         if ($since != 0) {
-            $inbox->whereAdd('cursor > ' . $since);
+            $tagged->whereAdd('cursor > ' . $since);
         }
 
         if ($upto != 0) {
-            $inbox->whereAdd('cursor <= ' . $upto);
+            $tagged->whereAdd('cursor <= ' . $upto);
         }
 
         if ($limit != null) {
