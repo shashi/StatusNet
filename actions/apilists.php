@@ -139,7 +139,7 @@ class ApiListsAction extends ApiAuthAction
         $fn = array($profile, 'getOwnedTags');
         list($this->lists,
              $this->next_cursor,
-             $this->prev_cursor) = Profile_list::getListsAtCursor($fn, $cursor, $count);
+             $this->prev_cursor) = Profile_list::getAtCursor($fn, $cursor, $count);
     }
 
     function isReadOnly($args)
