@@ -199,8 +199,6 @@ class Profile_list extends Memcached_DataObject
 
         $cnt = (int) $sub->count('distinct profile_id');
 
-        $cnt = ($cnt > 0) ? $cnt - 1 : $cnt;
-
         if (!empty($c)) {
             $c->set(common_cache_key('profile_list:subscriber_count:'.$this->id), $cnt);
         }
@@ -231,8 +229,6 @@ class Profile_list extends Memcached_DataObject
         $tag->tagger = $this->tagger;
 
         $cnt = (int) $tag->count('distinct tagged');
-
-        $cnt = ($cnt > 0) ? $cnt - 1 : $cnt;
 
         if (!empty($c)) {
             $c->set(common_cache_key('profile:tagged_count:'.$this->id), $cnt);
