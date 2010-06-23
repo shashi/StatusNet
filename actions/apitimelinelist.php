@@ -56,6 +56,9 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
 
     var $list   = null;
     var $notices = null;
+    var $next_cursor = 0;
+    var $prev_cursor = 0;
+    var $cursor = -1;
 
     /**
      * Take arguments for running
@@ -70,6 +73,7 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
     {
         parent::prepare($args);
 
+        $this->cursor = (int) $this->arg('cursor', -1);
         $this->list = $this->getTargetList($this->arg('user'), $this->arg('id'));
 
         return true;
@@ -113,7 +117,21 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
 
         switch($this->format) {
         case 'xml':
-            $this->showXmlTimeline($this->notices);
+            $this->initDocument('xml');
+            $this->elementStart('statuses_list',
+                    array('xmlns:statusnet' => 'http://status.net/schema/api/1/'));
+            $this->elementStart('statuses', array('type' => 'array'));
+
+            foreach ($this->notices as $n) {
+                $twitter_status = $this->twitterStatusArray($n);
+                $this->showTwitterXmlStatus($twitter_status);
+            }
+
+            $this->elementEnd('statuses');
+            $this->element('next_cursor', null, $this->next_cursor);
+            $this->element('previous_cursor', null, $this->prev_cursor);
+            $this->elementEnd('statuses_list');
+            $this->endDocument('xml');
             break;
         case 'rss':
             $this->showRssTimeline(
@@ -144,7 +162,23 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
 
             break;
         case 'json':
-            $this->showJsonTimeline($this->notices);
+            $this->initDocument('json');
+
+            $statuses = array();
+            foreach ($this->notices as $n) {
+                $twitter_status = $this->twitterStatusArray($n);
+                array_push($statuses, $twitter_status);
+            }
+
+            $statuses_list = array('statuses' => $statuses,
+                                   'next_cursor' => $this->next_cusror,
+                                   'next_cursor_str' => strval($this->next_cusror),
+                                   'previous_cursor' => $this->prev_cusror,
+                                   'previous_cursor_str' => strval($this->prev_cusror)
+                                   );
+            $this->showJsonObjects($statuses_list);
+
+            $this->initDocument('json');
             break;
         default:
             $this->clientError(
@@ -164,20 +198,13 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
 
     function getNotices()
     {
-        $notices = array();
-
-        $notice = $this->list->getNotices(
-            ($this->page-1) * $this->count,
-            $this->count,
-            $this->since_id,
-            $this->max_id
-        );
+        $fn = array($this->list, 'getNotices');
+        list($notice, $this->next_cursor, $this->prev_cursor) =
+                Profile_list::getAtCursor($fn, $this->cursor, 20);
 
         while ($notice->fetch()) {
-            $notices[] = clone($notice);
+            $this->notices[] = clone($notice);
         }
-
-        return $notices;
     }
 
     /**

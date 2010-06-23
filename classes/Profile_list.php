@@ -425,13 +425,22 @@ class Profile_list extends Memcached_DataObject
 
             if(count($lists)==$count+1) {
                 $next = array_pop($lists);
-                $next_cursor = $next->cursor;
+                if(isset($next->cursor)) {
+                    $next_cursor = $next->cursor;
+                } else {
+                    $next_cursor = $next->id;
+                }
             }
 
             // and one list after cursor
             $prev = call_user_fucnc($fn, 0, 1, $cursor);
             while($prev->fetch()) {
-                $prev_cursor = -1*$lists[0]->cursor;
+                if(isset($lists[0]->cursor)) {
+                    $prev_cursor = -1*$lists[0]->cursor;
+                }
+                else {
+                    $prev_cursor = -1*$lists[0]->id;
+                }
             }
 
             return array($lists, $next_cursor, $prev_cursor);
@@ -445,15 +454,25 @@ class Profile_list extends Memcached_DataObject
                 $lists[] = clone($list);
             }
 
-            if($lists[count($lists)-1]->cursor == $cursor) {
+            $cur = isset($lists[count($lists)-1]->cursor) ? $lists[count($lists)-1]->cursor :
+                                $lists[count($lists)-1]->id;
+            if($cur == $cursor) {
                 // this means there exists a next page
                 $next = array_pop($lists);
-                $next_cursor = $next->cursor;
+                if(isset($next->cursor)) {
+                    $next_cursor = $next->cursor;
+                } else {
+                    $next_cursor = $next->id;
+                }
             }
 
             if(count($lists) == $count+1) {
                 $prev = array_shift($lists);
-                $prev_cursor = -1*$prev->cursor;
+                if(isset($prev->cursor)) {
+                    $prev_cursor = -1*$prev->cursor;
+                } else {
+                    $prev_cursor = -1*$prev->id;
+                }
             }
             return array($lists, $next_cursor, $prev_cursor);
         }
@@ -466,7 +485,11 @@ class Profile_list extends Memcached_DataObject
 
             if(count($lists)==$count+1) {
                 $next = array_pop($lists);
-                $next_cursor = $next->cursor;
+                if(isset($next->cursor)) {
+                    $next_cursor = $next->cursor;
+                } else {
+                    $next_cursor = $next->id;
+                }
             }
 
             return array($lists, $next_cursor, $prev_cursor);

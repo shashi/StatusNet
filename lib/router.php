@@ -696,7 +696,7 @@ class Router
                               'format' => '(xml|json)'));
 
             $m->connect('api/:user/lists/:id/statuses.:format',
-                        array('action' => 'ApiListTimeline',
+                        array('action' => 'ApiTimelineList',
                               'user' => '[a-zA-Z0-9]+',
                               'id' => '[a-zA-Z0-9]+',
                               'format' => '(xml|json|rss|atom)'));
