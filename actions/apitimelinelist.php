@@ -55,7 +55,7 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
 {
 
     var $list   = null;
-    var $notices = null;
+    var $notices = array();
     var $next_cursor = 0;
     var $prev_cursor = 0;
     var $cursor = -1;
@@ -98,7 +98,7 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
             return false;
         }
 
-        $this->notices = $this->getNotices();
+        $this->getNotices();
         $this->showTimeline();
     }
 
@@ -199,11 +199,10 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
     function getNotices()
     {
         $fn = array($this->list, 'getNotices');
-        list($notice, $this->next_cursor, $this->prev_cursor) =
+        list($this->notices, $this->next_cursor, $this->prev_cursor) =
                 Profile_list::getAtCursor($fn, $this->cursor, 20);
-
-        while ($notice->fetch()) {
-            $this->notices[] = clone($notice);
+        if (!$this->notices) {
+            $this->notices = array();
         }
     }
 
