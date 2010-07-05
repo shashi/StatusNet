@@ -30,6 +30,7 @@ class Ostatus_profile extends Memcached_DataObject
 
     public $profile_id;
     public $group_id;
+    public $peopletag_id;
 
     public $feeduri;
     public $salmonuri;
@@ -57,6 +58,7 @@ class Ostatus_profile extends Memcached_DataObject
         return array('uri' => DB_DATAOBJECT_STR + DB_DATAOBJECT_NOTNULL,
                      'profile_id' => DB_DATAOBJECT_INT,
                      'group_id' => DB_DATAOBJECT_INT,
+                     'peopletag_id' => DB_DATAOBJECT_INT,
                      'feeduri' => DB_DATAOBJECT_STR,
                      'salmonuri' =>  DB_DATAOBJECT_STR,
                      'avatar' =>  DB_DATAOBJECT_STR,
@@ -71,6 +73,8 @@ class Ostatus_profile extends Memcached_DataObject
                      new ColumnDef('profile_id', 'integer',
                                    null, true, 'UNI'),
                      new ColumnDef('group_id', 'integer',
+                                   null, true, 'UNI'),
+                     new ColumnDef('peopletag_id', 'integer',
                                    null, true, 'UNI'),
                      new ColumnDef('feeduri', 'varchar',
                                    255, true, 'UNI'),
@@ -109,7 +113,7 @@ class Ostatus_profile extends Memcached_DataObject
 
     function keyTypes()
     {
-        return array('uri' => 'K', 'profile_id' => 'U', 'group_id' => 'U', 'feeduri' => 'U');
+        return array('uri' => 'K', 'profile_id' => 'U', 'group_id' => 'U', 'peopletag_id' => 'U', 'feeduri' => 'U');
     }
 
     function sequenceKey()
