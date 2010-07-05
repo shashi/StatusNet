@@ -88,6 +88,8 @@ class AtomListNoticeFeed extends AtomNoticeFeed
         $this->setId($self);
         $this->setSelfLink($self);
 
+        $this->setActivitySubject($this->list->asActivitySubject());
+
         $this->addLink($this->list->getUri());
     }
 

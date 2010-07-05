@@ -65,6 +65,7 @@ class ActivityObject
     const BOOKMARK  = 'http://activitystrea.ms/schema/1.0/bookmark';
     const PERSON    = 'http://activitystrea.ms/schema/1.0/person';
     const GROUP     = 'http://activitystrea.ms/schema/1.0/group';
+    const _LIST     = 'http://activitystrea.ms/schema/1.0/list'; // LIST is reserved
     const PLACE     = 'http://activitystrea.ms/schema/1.0/place';
     const COMMENT   = 'http://activitystrea.ms/schema/1.0/comment';
     // ^^^^^^^^^^ tea!
@@ -93,6 +94,7 @@ class ActivityObject
     public $title;
     public $summary;
     public $content;
+    public $owner;
     public $link;
     public $source;
     public $avatarLinks = array();
@@ -474,6 +476,21 @@ class ActivityObject
         return $object;
     }
 
+    static function fromPeopletag($ptag)
+    {
+        $object = new ActivityObject();
+
+        $object->type    = ActivityObject::_LIST;
+
+        $object->id      = $ptag->getUri();
+        $object->title   = $ptag->tag;
+        $object->summary = $ptag->description;
+        $object->link    = $ptag->getUri();
+        $object->owner   = Profile::staticGet('id', $ptag->tagger);
+
+        return $object;
+    }
+
     function asString($tag='activity:object')
     {
         $xs = new XMLStringer(true);
@@ -536,6 +553,11 @@ class ActivityObject
                     null
                 );
             }
+        }
+
+        if(!empty($this->owner)) {
+            $owner = $this->owner->asActivityNoun(self::AUTHOR);
+            $xs->raw($owner);
         }
 
         if (!empty($this->geopoint)) {

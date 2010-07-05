@@ -30,6 +30,11 @@ class Profile_list extends Memcached_DataObject
     /* the code above is auto generated do not remove the tag below */
     ###END_AUTOCODE
 
+    function getBestName()
+    {
+        return $this->tag;
+    }
+
     function getUri()
     {
         $uri = null;
@@ -273,6 +278,17 @@ class Profile_list extends Memcached_DataObject
         }
         parent::update($orig);
         return $result;
+    }
+
+    function asActivitySubject()
+    {
+        return $this->asActivityNoun('subject');
+    }
+
+    function asActivityNoun($element)
+    {
+        $noun = ActivityObject::fromPeopletag($this);
+        return $noun->asString('activity:' . $element);
     }
 
     static function getByTaggerAndTag($tagger, $tag)
