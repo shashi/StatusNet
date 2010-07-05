@@ -155,6 +155,14 @@ class Profile_tag extends Memcached_DataObject
         return $tagged;
     }
 
+    static function unTag($tagger, $tagged, $tag) {
+        $ptag = Profile_tag::pkeyGet('tagger' => $tagger,
+                                    'tagged' => $tagged,
+                                    'tag'    => $tag);
+        return $ptag->delete();
+    }
+
+    // @fixme: move this to Profile_list?
     static function deleteTag($tagger, $tag) {
         $tags = new Profile_tag();
         $tags->tagger = $tagger;
