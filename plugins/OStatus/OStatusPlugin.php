@@ -53,10 +53,17 @@ class OStatusPlugin extends Plugin
                   array('action' => 'ostatusinit'), array('nickname' => '[A-Za-z0-9_-]+'));
         $m->connect('main/ostatus?group=:group',
                   array('action' => 'ostatusinit'), array('group' => '[A-Za-z0-9_-]+'));
+        $m->connect('main/ostatus?nickname=:user&peopletag=:tag',
+                  array('action' => 'ostatusinit'), array('user' => '[A-Za-z0-9_-]+',
+                                                          'tag' => '[A-Za-z0-9_-]+'));
+
+        // Remote subscription actions
         $m->connect('main/ostatussub',
                     array('action' => 'ostatussub'));
         $m->connect('main/ostatusgroup',
                     array('action' => 'ostatusgroup'));
+        $m->connect('main/ostatuspeopletag',
+                    array('action' => 'ostatuspeopletag'));
 
         // PuSH actions
         $m->connect('main/push/hub', array('action' => 'pushhub'));
@@ -71,6 +78,9 @@ class OStatusPlugin extends Plugin
                     array('id' => '[0-9]+'));
         $m->connect('main/salmon/group/:id',
                     array('action' => 'groupsalmon'),
+                    array('id' => '[0-9]+'));
+        $m->connect('main/salmon/peopletag/:id',
+                    array('action' => 'peopletagsalmon'),
                     array('id' => '[0-9]+'));
         return true;
     }
@@ -144,6 +154,11 @@ class OStatusPlugin extends Plugin
             $group = $feed->getGroup();
             $id = $group->id;
             $feed->setActivitySubject($group->asActivitySubject());
+        } else if ($feed instanceof AtomListNoticeFeed) {
+            $salmonAction = 'peopletagsalmon';
+            $peopletag = $feed->getList();
+            $id = $peopletag->id;
+            $feed->setActivitySubject($peopletag->asActivitySubject());
         } else {
             return true;
         }
