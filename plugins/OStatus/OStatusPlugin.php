@@ -711,6 +711,95 @@ class OStatusPlugin extends Plugin
     }
 
     /**
+     * When one of our local users tries to subscribe to a remote peopletag,
+     * notify the remote server. If the notification is rejected,
+     * deny the subscription.
+     *
+     * @param Profile_list $peopletag
+     * @param User         $user
+     *
+     * @return mixed hook return value
+     */
+
+    function onStartSubscribePeopletag($peopletag, $user)
+    {
+        $oprofile = Ostatus_profile::staticGet('peopletag_id', $peopletag->id);
+        if ($oprofile) {
+            if (!$oprofile->subscribe()) {
+                throw new Exception(_m('Could not set up remote peopletag subscription.'));
+            }
+
+            $sub = Profile::staticGet($user->id);
+            $tagger = Profile::staticGet($peopletag->tagger);
+
+            $act = new Activity();
+            $act->id = TagURI::mint('subscribe_peopletag:%d:%d:%s',
+                                    $sub->id,
+                                    $peopletag->id,
+                                    common_date_iso8601(time()));
+
+            $act->actor = ActivityObject::fromProfile($sub);
+            $act->verb = ActivityVerb::FOLLOW;
+            $act->object = $oprofile->asActivityObject();
+
+            $act->time = time();
+            $act->title = _m("Follow list");
+            $act->content = sprintf(_m("%s is now following people tagged %s by %s."),
+                                    $sub->getBestName(),
+                                    $oprofile->getBestName(),
+                                    $tagger->getBestName());
+
+            if ($oprofile->notifyActivity($act, $member)) {
+                return true;
+            } else {
+                $oprofile->garbageCollect();
+                throw new Exception(_m("Failed subscribing to remote peopletag."));
+            }
+        }
+    }
+
+    /**
+     * When one of our local users unsubscribes to a remote peopletag, notify the remote
+     * server.
+     *
+     * @param Profile_list $peopletag
+     * @param User         $user
+     *
+     * @return mixed hook return value
+     */
+
+    function onEndUnsubscribePeopletag($peopletag, $user)
+    {
+        $oprofile = Ostatus_profile::staticGet('peopletag_id', $peopletag->id);
+        if ($oprofile) {
+            // Drop the PuSH subscription if there are no other subscribers.
+            $oprofile->garbageCollect();
+
+            $sub = Profile::staticGet($user->id);
+            $tagger = Profile::staticGet($peopletag->tagger);
+
+            $act = new Activity();
+            $act->id = TagURI::mint('unsubscribe_peopletag:%d:%d:%s',
+                                    $sub->id,
+                                    $peopletag->id,
+                                    common_date_iso8601(time()));
+
+            $act->actor = ActivityObject::fromProfile($member);
+            $act->verb = ActivityVerb::UNFOLLOW;
+            $act->object = $oprofile->asActivityObject();
+
+            $act->time = time();
+            $act->title = _m("Unfollow peopletag");
+            $act->content = sprintf(_m("%s stopped following the list %s by %s."),
+                                    $sub->getBestName(),
+                                    $oprofile->getBestName(),
+                                    $tagger->getBestName());
+
+            $oprofile->notifyActivity($act, $member);
+        }
+    }
+
+    /**
      * Notify remote users when their notices get favorited.
      *
      * @param Profile or User $profile of local user doing the faving
@@ -750,6 +839,76 @@ class OStatusPlugin extends Plugin
         $act->object  = ActivityObject::fromNotice($notice);
 
         $oprofile->notifyActivity($act, $profile);
+
+        return true;
+    }
+
+    function onEndTagProfile($ptag)
+    {
+        $oprofile = Ostatus_profile::staticGet('profile_id', $ptag->tagged);
+
+        if (empty($oprofile)) {
+            return true;
+        }
+
+        $act = new Activity();
+
+        $tagger = Profile::staticGet('id', $ptag->tagger);
+        $tagged = Profile::staticGet('id', $ptag->tagged);
+
+        $act->verb = ActivityVerb::TAG;
+        $act->id   = TagURI::mint('tag_profile:%d:%d:%s',
+                                  $ptag->tagger, $ptag->id,
+                                  common_date_iso8601(time()));
+        $act->time = time();
+        $act->title = _("Tag");
+        $act->content = sprintf(_("%s tagged %s in the list %s"),
+                                $tagger->getBestName(),
+                                $tagged->getBestName(),
+                                $ptag->getBestName());
+
+        $act->actor  = ActivityObject::fromProfile($tagger);
+        $act->object = ActivityObject::fromProfile($tagged);
+        $act->target = ActivityObject::fromPeopletag($ptag);
+
+        $oprofile->notifyActivity($act, $tagger);
+
+        // initiate a PuSH subscription for the person being tagged
+        return $oprofile->subscribe();
+    }
+
+    function onEndUntagProfile($ptag)
+    {
+        $oprofile = Ostatus_profile::staticGet('profile_id', $ptag->tagged);
+
+        if (empty($oprofile)) {
+            return true;
+        }
+
+        $act = new Activity();
+
+        $tagger = Profile::staticGet('id', $ptag->tagger);
+        $tagged = Profile::staticGet('id', $ptag->tagged);
+
+        $act->verb = ActivityVerb::UNTAG;
+        $act->id   = TagURI::mint('untag_profile:%d:%d:%s',
+                                  $ptag->tagger, $ptag->id,
+                                  common_date_iso8601(time()));
+        $act->time = time();
+        $act->title = _("Untag");
+        $act->content = sprintf(_("%s untagged %s from the list %s"),
+                                $tagger->getBestName(),
+                                $tagged->getBestName(),
+                                $ptag->getBestName());
+
+        $act->actor  = ActivityObject::fromProfile($tagger);
+        $act->object = ActivityObject::fromProfile($tagged);
+        $act->target = ActivityObject::fromPeopletag($ptag);
+
+        $oprofile->notifyActivity($act, $tagger);
+
+        // unsubscribe to PuSH feed if no more required
+        $oprofile->garbageCollect();
 
         return true;
     }

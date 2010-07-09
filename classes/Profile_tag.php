@@ -70,41 +70,13 @@ class Profile_tag extends Memcached_DataObject
         $profile_tag->tagger = $tagger;
         $profile_tag->tagged = $tagged;
 
-        $profile_tag->query('BEGIN');
-
         foreach ($to_delete as $deltag) {
-            $profile_tag->tag = $deltag;
-            $result = $profile_tag->delete();
-
-            if (!$result) {
-                common_log_db_error($profile_tag, 'DELETE', __FILE__);
-                return false;
-            }
-
-            # Delete tag metadata if no one is tagged
-            $profile_list = Profile_list::cleanupTag($tagger, $deltag);
-
-            if($profile_list) {
-                $profile_list->blowTaggedCount();
-            }
+            self::unTag($tagger, $tagged, $deltag);
         }
 
         foreach ($to_insert as $instag) {
-            $profile_tag->tag = $instag;
-            $result = $profile_tag->insert();
-
-            # Add if tag no one is tagged
-            $profile_list = Profile_list::ensureTag($tagger, $instag);
-
-            if (!$result) {
-                common_log_db_error($profile_tag, 'INSERT', __FILE__);
-                return false;
-            }
-
-            $profile_list->blowTaggedCount();
+            self::setTag($tagger, $tagged, $instag);
         }
-
-        $profile_tag->query('COMMIT');
 
         return true;
     }
@@ -121,23 +93,41 @@ class Profile_tag extends Memcached_DataObject
             return $ptag;
         }
 
-        $profile_list = Profile_list::ensureTag($tagger, $tag);
+        if (Event::handle('StartTagProfile', array($tagger, $tag))) {
+            $profile_list = Profile_list::ensureTag($tagger, $tag);
 
-        $newtag = new Profile_tag();
+            $newtag = new Profile_tag();
 
-        $newtag->tagger = $tagger;
-        $newtag->tagged = $tagged;
-        $newtag->tag = $tag;
+            $newtag->tagger = $tagger;
+            $newtag->tagged = $tagged;
+            $newtag->tag = $tag;
 
-        $result = $newtag->insert();
-        if (!$result) {
-            common_log_db_error($newtag, 'INSERT', __FILE__);
-            return false;
+            $result = $newtag->insert();
+            if (!$result) {
+                common_log_db_error($newtag, 'INSERT', __FILE__);
+                return false;
+            }
+
+            if(!Event::handle('EndTagProfile', array($newtag))) {
+                $newtag->delete();
+                return false;
+            }
+            $profile_list->blowTaggedCount();
         }
 
-        $profile_list->blowTaggedCount();
-
         return $newtag;
+    }
+
+    static function unTag($tagger, $tagged, $tag) {
+        $ptag = Profile_tag::pkeyGet(array('tagger' => $tagger,
+                                           'tagged' => $tagged,
+                                           'tag'    => $tag));
+        if (Event::handle('StartUntagProfile', array($ptag))) {
+            $orig = clone($ptag);
+            $result = $ptag->delete();
+            Event::handle('EndUntagProfile', array($orig));
+            return $result;
+        }
     }
 
     # Return profiles with a given tag
@@ -153,13 +143,6 @@ class Profile_tag extends Memcached_DataObject
             $tagged[] = clone($profile);
         }
         return $tagged;
-    }
-
-    static function unTag($tagger, $tagged, $tag) {
-        $ptag = Profile_tag::pkeyGet('tagger' => $tagger,
-                                    'tagged' => $tagged,
-                                    'tag'    => $tag);
-        return $ptag->delete();
     }
 
     // @fixme: move this to Profile_list?
@@ -189,6 +172,24 @@ class Profile_tag extends Memcached_DataObject
         if (!$result) {
             common_log_db_error($tags, 'UPDATE', __FILE__);
             return false;
+        }
+        return true;
+    }
+
+    function delete()
+    {
+        $tagger = $this->tagger;
+        $tag    = $this->tag;
+
+        $result = parent::delete();
+        if (!$result) {
+            common_log_db_error($this, 'DELETE', __FILE__);
+            return false;
+        }
+
+        $record = Profile_list::cleanupTag($tagger, $tag);
+        if ($record) {
+            $record->blowTaggedCount();
         }
         return true;
     }

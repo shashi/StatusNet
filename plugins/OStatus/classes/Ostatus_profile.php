@@ -281,8 +281,15 @@ class Ostatus_profile extends Memcached_DataObject
         if ($this->isGroup()) {
             $members = $this->localGroup()->getMembers(0, 1);
             $count = $members->N;
+        } else if ($this->isPeopletag()) {
+            $subscribers = $this->localProfile()->getSubscribers(0, 1);
+            $count = $subscribers->N;
         } else {
-            $count = $this->localProfile()->subscriberCount();
+            $profile = $this->localProfile();
+            $count = $profile->subscriberCount();
+            if ($profile->hasLocalTags()) {
+                $count = 1;
+            }
         }
         if ($count == 0) {
             common_log(LOG_INFO, "Unsubscribing from now-unused remote feed $this->feeduri");
