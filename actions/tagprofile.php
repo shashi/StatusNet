@@ -21,7 +21,7 @@ if (!defined('STATUSNET') && !defined('LACONICA')) { exit(1); }
 
 require_once(INSTALLDIR.'/lib/settingsaction.php');
 
-class TagotherAction extends Action
+class TagprofileAction extends Action
 {
     var $profile = null;
     var $error = null;
@@ -36,15 +36,14 @@ class TagotherAction extends Action
 
         $id = $this->trimmed('id');
         if (!$id) {
-            $this->clientError(_('No ID argument.'));
-            return false;
-        }
+            $this->profile = false;
+        } else {
+            $this->profile = Profile::staticGet('id', $id);
 
-        $this->profile = Profile::staticGet('id', $id);
-
-        if (!$this->profile) {
-            $this->clientError(_('No profile with that ID.'));
-            return false;
+            if (!$this->profile) {
+                $this->clientError(_('No profile with that ID.'));
+                return false;
+            }
         }
 
         return true;
@@ -56,7 +55,7 @@ class TagotherAction extends Action
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $this->saveTags();
         } else {
-            $this->showForm($profile);
+            $this->showForm();
         }
     }
 
@@ -73,6 +72,10 @@ class TagotherAction extends Action
 
     function showContent()
     {
+        if (!$this->profile) {
+            // TODO: show form for fetching a remote profile to tag.
+        }
+
         $this->elementStart('div', 'entity_profile vcard author');
         $this->element('h2', null, _('User profile'));
 
@@ -134,8 +137,8 @@ class TagotherAction extends Action
         $this->elementStart('form', array('method' => 'post',
                                            'id' => 'form_tag_user',
                                            'class' => 'form_settings',
-                                           'name' => 'tagother',
-                                           'action' => common_local_url('tagother', array('id' => $this->profile->id))));
+                                           'name' => 'tagprofile',
+                                           'action' => common_local_url('tagprofile', array('id' => $this->profile->id))));
 
         $this->elementStart('fieldset');
         $this->element('legend', null, _('Tag user'));
@@ -199,12 +202,10 @@ class TagotherAction extends Action
             $this->elementEnd('head');
             $this->elementStart('body');
             $this->elementStart('p', 'subtags');
-            foreach ($tags as $tag) {
-                $this->element('a', array('href' => common_local_url($action,
-                                                                     array('nickname' => $user->nickname,
-                                                                           'tag' => $tag))),
-                               $tag);
-            }
+
+            $widget = new PeopletagsWidget($this, $user, $this->profile);
+            $widget->show();
+
             $this->elementEnd('p');
             $this->elementEnd('body');
             $this->elementEnd('html');
@@ -216,7 +217,7 @@ class TagotherAction extends Action
                 common_set_returnto(null);
                 $url = common_inject_session($url);
             } else {
-                $url = common_local_url('listtaggedprofiles',
+                $url = common_local_url('peopletagsbyuser',
                                 array('nickname' => $user->nickname));
             }
             common_redirect($url, 303);
