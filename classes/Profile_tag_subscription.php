@@ -55,7 +55,7 @@ class Profile_tag_subscription extends Memcached_DataObject
 
     static function remove($profile_tag_id, $profile_id)
     {
-        $sub = Profile_tag_subcscription::pkeyGet(array('profile_tag_id' => $profile_tag_id,
+        $sub = Profile_tag_subscription::pkeyGet(array('profile_tag_id' => $profile_tag_id,
                                               'profile_id' => $profile_id));
 
         if (empty($sub)) {

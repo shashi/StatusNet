@@ -144,7 +144,7 @@ class Router
             $m->connect('main/sup/:seconds', array('action' => 'sup'),
                         array('seconds' => '[0-9]+'));
 
-            $m->connect('main/tagother/:id', array('action' => 'tagother'));
+            $m->connect('main/tagprofile/:id', array('action' => 'tagprofile'));
 
             $m->connect('main/oembed',
                         array('action' => 'oembed'));
@@ -864,29 +864,28 @@ class Router
                 }
 
                 // people tags
-                $m->connect(':tagger/peopletags',
-                                array('action' => 'tagsbyuser',
-                                      'tagger' => '[a-zA-Z0-9]{1,64}'));
+                $m->connect(':nickname/peopletags',
+                                array('action' => 'peopletagsbyuser',
+                                      'nickname' => '[a-zA-Z0-9]{1,64}'));
 
-                $m->connect(':tagged/othertags',
-                                array('action' => 'tagsbyothers',
-                                      'tagged' => '[a-zA-Z0-9]{1,64}'));
+                $m->connect(':nickname/othertags',
+                                array('action' => 'peopletagsforuser',
+                                      'nickname' => '[a-zA-Z0-9]{1,64}'));
 
                 $m->connect(':tagger/all/:tag/subscribers',
-                                array('action' => 'tagsubscribers',
+                                array('action' => 'peopletagsubscribers',
                                       'tagger' => '[a-zA-Z0-9]{1,64}',
                                       'tag' => '[a-zA-Z0-9]{1,64}'));
 
                 $m->connect(':tagger/all/:tag/tagged',
-                                array('action' => 'taggedprofiles',
+                                array('action' => 'peopletagged',
                                       'tagger' => '[a-zA-Z0-9]{1,64}',
                                       'tag' => '[a-zA-Z0-9]{1,64}'));
 
-                foreach(array('subscribe', 'unsubscribe', 'edit') as $v) {
-                    $m->connect(':tagger/all/:tag/'.$v,
-                                    array('action' => $v.'tag',
-                                          'tagger' => '[a-zA-Z0-9]{1,64}',
-                                          'tag' => '[a-zA-Z0-9]{1,64}'));
+                foreach(array('subscribe', 'unsubscribe') as $v) {
+                    $m->connect('peopletag/:id/'.$v,
+                                    array('action' => $v.'peopletag',
+                                          'id' => '[0-9]{1,64}'));
                 }
                 $m->connect('user/:tagger_id/profiletag/:id/id',
                                 array('action' => 'profiletagbyid',

@@ -161,6 +161,12 @@ class Profile_list extends Memcached_DataObject
         return $ids;
     }
 
+    function hasSubscriber($id)
+    {
+        $sub = Profile_tag_subscription::pkeyGet(array('profile_tag_id' => $this->id,
+                                                       'profile_id'     => $id));
+        return !empty($sub);
+    }
     function getTagged($offset=0, $limit=null, $since=0, $upto=0)
     {
         $tagged = new Profile();

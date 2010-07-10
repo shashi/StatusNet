@@ -101,7 +101,7 @@ class SubscriptionListItem extends ProfileListItem
         $this->out->elementStart('dl', 'entity_tags');
         $this->out->elementStart('dt');
         if ($this->isOwn()) {
-            $this->out->element('a', array('href' => common_local_url('tagother',
+            $this->out->element('a', array('href' => common_local_url('tagprofile',
                                                                       array('id' => $this->profile->id))),
                                 _('Tags'));
         } else {
