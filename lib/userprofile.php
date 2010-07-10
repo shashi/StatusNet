@@ -33,7 +33,7 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
 }
 
 require_once INSTALLDIR.'/lib/widget.php';
-require_once INSTALLDIR.'/lib/profiletagsbycurrentuser.php';
+require_once INSTALLDIR.'/lib/peopletags.php';
 
 /**
  * Profile of a user
@@ -85,7 +85,6 @@ class UserProfile extends Widget
                 $this->showHomepage();
                 $this->showBio();
                 $this->showProfileTags();
-                $this->showTagsByCurrentUser();
 
                 Event::handle('EndProfilePageProfileElements', array(&$this->out, $this->profile));
             }
@@ -204,35 +203,17 @@ class UserProfile extends Widget
 
     function showProfileTags()
     {
-        if (Event::handle('StartProfilePageProfileTags', array($this->out, $this->profile))) {
-            $tags = Profile_tag::getTags($this->profile->id, $this->profile->id);
+        $cur = common_current_user();
+        $self_tags = new SelftagsWidget($this->out, $cur, $this->profile, $cur);
+        $self_tags->show();
 
-            if (count($tags) > 0) {
-                $this->out->elementStart('dl', 'entity_tags');
-                $this->out->element('dt', null, _('Tags'));
-                $this->out->elementStart('dd');
-                $this->out->elementStart('ul', 'tags xoxo');
-                foreach ($tags as $tag) {
-                    $this->out->elementStart('li');
-                    // Avoid space by using raw output.
-                    $pt = '<span class="mark_hash">#</span><a rel="tag" href="' .
-                      common_local_url('peopletag', array('tag' => $tag)) .
-                      '">' . $tag . '</a>';
-                    $this->out->raw($pt);
-                    $this->out->elementEnd('li');
-                }
-                $this->out->elementEnd('ul');
-                $this->out->elementEnd('dd');
-                $this->out->elementEnd('dl');
+        if ($cur) {
+            // don't show self-tags again
+            if ($cur->id != $this->profile->id) {
+                $tags = new PeopletagsWidget($this->out, $this->profile, $this->profile);
+                $tags->show();
             }
-            Event::handle('EndProfilePageProfileTags', array($this->out, $this->profile));
         }
-    }
-
-    function showTagsByCurrentUser()
-    {
-        $widget = new ProfileTagsByCurrentUserWidget($this->out, $this->profile);
-        $widget->show();
     }
 
     function showEntityActions()
