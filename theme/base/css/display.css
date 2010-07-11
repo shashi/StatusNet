@@ -737,7 +737,6 @@ font-style:italic;
 .entity_actions {
 float:right;
 margin-left:2%;
-margin-bottom:18px;
 min-width:21%;
 }
 .entity_actions h2 {
@@ -931,6 +930,31 @@ display:none;
 .profiles {
 list-style-type:none;
 }
+
+.peopletag .entry-content {
+display:inline;
+width:70%;
+}
+.peopletag .tagged-count a:after,
+.peopletag .subscriber-count a:after {
+content: ':';
+}
+.peopletag .updated {
+display:none;
+}
+.peopletag .tag a{
+font-weight: bold;
+text-decoration: none;
+}
+.peopletag .tag:before {
+content: '»';
+}
+.peopletag .entity_statistics {
+font-size:80%;
+}
+.peopletag .entity_statistics a {
+text-decoration:none;
+}
 .profile .entity_profile .fn.nickname,
 .profile .entity_profile .url[rel~=contact] {
 margin-left:0;
@@ -1020,7 +1044,8 @@ width:14.5%;
 /* NOTICE */
 .notice,
 .profile,
-.application {
+.application,
+.peopletag {
 position:relative;
 padding-top:11px;
 padding-bottom:11px;

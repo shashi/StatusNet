@@ -126,6 +126,18 @@ class PeopletagGroupNav extends Widget
                              sprintf(_('Subscribers to %s tag by %s'), $tag->tag,
                                 (($user_profile && $user_profile->fullname) ? $user_profile->fullname : $nickname)),
                              $action == 'peopletagsubscribers', 'nav_peopletag_subscribers');
+
+            $cur = common_current_user();
+            if (!empty($cur) && $user_profile->id == $cur->id) {
+                // Edit
+                $this->out->menuItem(common_local_url('editpeopletag', array('tagger' => $user->nickname,
+                                                                             'tag'    => $tag->tag)),
+                                 _('Edit'),
+                                 sprintf(_('Edit %s tag by you'), $tag->tag,
+                                    (($user_profile && $user_profile->fullname) ? $user_profile->fullname : $nickname)),
+                                 $action == 'editpeopletag', 'nav_peopletag_edit');
+            }
+
             Event::handle('EndPeopletagGroupNav', array($this));
         }
         $this->out->elementEnd('ul');

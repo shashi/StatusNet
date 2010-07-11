@@ -164,7 +164,7 @@ class PeopletagListItem extends Widget
         $this->showTag();
         $this->showUpdated();
         $this->showDescription();
-        $this->showSubscribeForm();
+        $this->showActions();
     }
 
     function showStats()
@@ -192,12 +192,20 @@ class PeopletagListItem extends Widget
 
     function showOwnerOptions()
     {
-        //TODO: what?
+        $this->out->elementStart('li', 'entity_edit');
+        $this->out->element('a', array('href' =>
+                    common_local_url('editpeopletag', array('tagger' => $this->profile->nickname,
+                                                    'tag' => $this->peopletag->tag)),
+                                  'title' => _('Edit profile settings')),
+                       _('Edit'));
+        $this->out->elementEnd('li');
     }
 
     function showSubscribeForm()
     {
         if ($this->current) {
+            $this->out->elementStart('li');
+
             if ($this->peopletag->hasSubscriber($this->current->id)) {
                 $form = new UnsubscribePeopletagForm($this->out, $this->peopletag);
                 $form->show();
@@ -205,6 +213,7 @@ class PeopletagListItem extends Widget
                 $form = new SubscribePeopletagForm($this->out, $this->peopletag);
                 $form->show();
             }
+            $this->out->elementEnd('li');
         }
     }
 
@@ -214,6 +223,7 @@ class PeopletagListItem extends Widget
         $attrs = array();
         $attrs['href'] = $this->profile->profileurl;
         $attrs['class'] = 'url';
+        $attrs['rel'] = 'contact';
 
         if (!empty($this->profile->fullname)) {
             $attrs['title'] = $this->profile->fullname . ' (' . $this->profile->nickname . ')';
@@ -221,9 +231,8 @@ class PeopletagListItem extends Widget
         $this->out->elementStart('a', $attrs);
         $this->showAvatar();
         $this->out->text(' ');
-        $this->out->raw('<span class="nickname fn">' .
-                        htmlspecialchars($this->profile->nickname) .
-                        '</span>');
+        $this->out->element('span', 'nickname fn',
+                        htmlspecialchars($this->profile->nickname));
 
         $this->out->elementEnd('a');
         $this->out->elementEnd('span');
@@ -241,11 +250,12 @@ class PeopletagListItem extends Widget
 
     function showTag()
     {
+        $this->out->elementStart('span', 'entry-title tag');
         $this->out->element('a',
-            array('class' => 'entry-title tag',
-                  'rel'   => 'bookmark',
+            array('rel'   => 'bookmark',
                   'href'  => $this->url()),
             htmlspecialchars($this->peopletag->tag));
+        $this->out->elementEnd('span');
     }
 
     /**
@@ -271,6 +281,19 @@ class PeopletagListItem extends Widget
                                          ($this->profile->fullname) ?
                                          $this->profile->fullname :
                                          $this->profile->nickname));
+    }
+
+    function showActions()
+    {
+        $this->out->elementStart('div', 'entity_actions');
+        $this->out->elementStart('ul');
+        $this->showSubscribeForm();
+
+        if (!empty($this->current) && $this->profile->id == $this->current->id) {
+            $this->showOwnerOptions();
+        }
+        $this->out->elementEnd('ul');
+        $this->out->elementEnd('div');
     }
 
     function showDescription()

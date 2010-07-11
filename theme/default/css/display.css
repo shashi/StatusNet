@@ -138,6 +138,7 @@ color:#002FA7;
 .notice,
 .profile,
 .application,
+.peopletag,
 #content tbody tr {
 border-top-color:#C8D1D5;
 }
@@ -188,6 +189,8 @@ button.close,
 .form_user_unsubscribe input.submit,
 .form_group_join input.submit,
 .form_user_subscribe input.submit,
+.form_peopletag_subscribe input.submit,
+.form_peopletag_unsubscribe input.submit,
 .form_remote_authorize input.submit,
 .entity_subscribe a,
 .entity_moderation p,
@@ -303,6 +306,8 @@ background-position:0 1px;
 .form_group_join input.submit,
 .form_group_leave input.submit,
 .form_user_subscribe input.submit,
+.form_peopletag_subscribe input.submit,
+.form_peopletag_unsubscribe input.submit,
 .form_user_unsubscribe input.submit,
 .form_remote_authorize input.submit,
 .entity_subscribe a {
@@ -310,11 +315,13 @@ background-color:#AAAAAA;
 color:#FFFFFF;
 }
 .form_group_leave input.submit,
-.form_user_unsubscribe input.submit {
+.form_user_unsubscribe input.submit,
+.form_peopletag_unsubscribe input.submit {
 background-position:5px -1246px;
 }
 .form_group_join input.submit,
 .form_user_subscribe input.submit,
+.form_peopletag_subscribe input.submit,
 .form_remote_authorize input.submit,
 .entity_subscribe a {
 background-position:5px -1181px;

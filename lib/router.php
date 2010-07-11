@@ -882,6 +882,11 @@ class Router
                                       'tagger' => '[a-zA-Z0-9]{1,64}',
                                       'tag' => '[a-zA-Z0-9]{1,64}'));
 
+                $m->connect(':tagger/all/:tag/edit',
+                                array('action' => 'editpeopletag',
+                                      'tagger' => '[a-zA-Z0-9]{1,64}',
+                                      'tag' => '[a-zA-Z0-9]{1,64}'));
+
                 foreach(array('subscribe', 'unsubscribe') as $v) {
                     $m->connect('peopletag/:id/'.$v,
                                     array('action' => $v.'peopletag',

@@ -741,6 +741,8 @@ var SN = { // StatusNet
                 $('.form_group_join').live('click', function() { SN.U.FormXHR($(this)); return false; });
                 $('.form_group_leave').live('click', function() { SN.U.FormXHR($(this)); return false; });
                 $('.form_user_nudge').live('click', function() { SN.U.FormXHR($(this)); return false; });
+                $('.form_peopletag_subscribe').live('click', function() { SN.U.FormXHR($(this)); return false; });
+                $('.form_peopletag_unsubscribe').live('click', function() { SN.U.FormXHR($(this)); return false; });
 
                 SN.U.NewDirectMessage();
             }

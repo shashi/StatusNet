@@ -297,18 +297,13 @@ class Peopletag extends PeopletagListItem
 {
     function showStart()
     {
-        $this->out->elementStart('div', array('class' => 'hentry peopletag-profile',
+        $this->out->elementStart('div', array('class' => 'hentry peopletag peopletag-profile',
                                              'id' => 'peopletag-' . $this->peopletag->id));
     }
 
     function showEnd()
     {
         $this->out->elementEnd('div');
-    }
-
-    function showOwnerOptions()
-    {
-        //TODO: what?
     }
 
     function showAvatar()
