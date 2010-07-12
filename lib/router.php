@@ -872,6 +872,10 @@ class Router
                                 array('action' => 'peopletagsforuser',
                                       'nickname' => '[a-zA-Z0-9]{1,64}'));
 
+                $m->connect(':nickname/peopletagsubscriptions',
+                                array('action' => 'peopletagsubscriptions',
+                                      'nickname' => '[a-zA-Z0-9]{1,64}'));
+
                 $m->connect(':tagger/all/:tag/subscribers',
                                 array('action' => 'peopletagsubscribers',
                                       'tagger' => '[a-zA-Z0-9]{1,64}',
