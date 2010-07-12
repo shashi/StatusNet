@@ -189,6 +189,8 @@ button.close,
 .form_user_unsubscribe input.submit,
 .form_group_join input.submit,
 .form_user_subscribe input.submit,
+.form_user_remove_peopletag input.submit,
+.form_user_add_peopletag input.submit,
 .form_peopletag_subscribe input.submit,
 .form_peopletag_unsubscribe input.submit,
 .form_remote_authorize input.submit,
@@ -310,12 +312,15 @@ background-position:0 1px;
 .form_peopletag_unsubscribe input.submit,
 .form_user_unsubscribe input.submit,
 .form_remote_authorize input.submit,
+.form_user_add_peopletag input.submit,
+.form_user_remove_peopletag input.submit,
 .entity_subscribe a {
 background-color:#AAAAAA;
 color:#FFFFFF;
 }
 .form_group_leave input.submit,
 .form_user_unsubscribe input.submit,
+.form_user_remove_peopletag input.submit,
 .form_peopletag_unsubscribe input.submit {
 background-position:5px -1246px;
 }
@@ -323,8 +328,21 @@ background-position:5px -1246px;
 .form_user_subscribe input.submit,
 .form_peopletag_subscribe input.submit,
 .form_remote_authorize input.submit,
+.form_user_add_peopletag input.submit,
 .entity_subscribe a {
 background-position:5px -1181px;
+}
+
+.profile-lister li {
+border-top: 1px #eee solid;
+}
+.profile-lister li:first-child {
+border:0;
+}
+#profile_search_results.profile-lister {
+max-height:800px;
+margin:10px 0;
+border:1px #ddd solid;
 }
 
 .entity_edit a, .profile_tags_edit_button {
@@ -341,7 +359,8 @@ background-position: 5px -852px;
 .entity_send-a-message .form_notice,
 .entity_moderation:hover ul,
 .entity_role:hover ul,
-.dialogbox {
+.dialogbox,
+#profile_search_results {
 box-shadow:3px 7px 5px rgba(194, 194, 194, 0.7);
 -moz-box-shadow:3px 7px 5px rgba(194, 194, 194, 0.7);
 -webkit-box-shadow:3px 7px 5px rgba(194, 194, 194, 0.7);

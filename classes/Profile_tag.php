@@ -122,6 +122,10 @@ class Profile_tag extends Memcached_DataObject
         $ptag = Profile_tag::pkeyGet(array('tagger' => $tagger,
                                            'tagged' => $tagged,
                                            'tag'    => $tag));
+        if (!$ptag) {
+            return true;
+        }
+
         if (Event::handle('StartUntagProfile', array($ptag))) {
             $orig = clone($ptag);
             $result = $ptag->delete();

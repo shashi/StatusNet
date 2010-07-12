@@ -300,6 +300,13 @@ class Profile extends Memcached_DataObject
         }
     }
 
+    function isTagged($peopletag) {
+        $tag = Profile_tag::pkeyGet(array('tagger' => $peopletag->tagger,
+                                          'tagged' => $this->id,
+                                          'tag'    => $peopletag->tag));
+        return !empty($tag);
+    }
+
     function isAdmin($group)
     {
         $mem = new Group_member();

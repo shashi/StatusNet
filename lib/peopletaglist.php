@@ -163,8 +163,8 @@ class PeopletagListItem extends Widget
         $this->showCreator();
         $this->showTag();
         $this->showUpdated();
-        $this->showDescription();
         $this->showActions();
+        $this->showDescription();
     }
 
     function showStats()

@@ -923,17 +923,21 @@ min-height:60px;
 .profile .form_group_join legend,
 .profile .form_group_leave legend,
 .profile .form_user_subscribe legend,
-.profile .form_user_unsubscribe legend {
+.profile .form_user_unsubscribe legend,
+.form_user_add_peopletag legend,
+.form_user_remove_peopletag legend {
 display:none;
 }
-
+.profile_search_wrap h3 {
+float:left;
+font-weight:normal;
+margin-right:10px;
+}
 .profiles {
 list-style-type:none;
 }
-
 .peopletag .entry-content {
-display:inline;
-width:70%;
+width:auto;
 }
 .peopletag .tagged-count a:after,
 .peopletag .subscriber-count a:after {
@@ -954,6 +958,48 @@ font-size:80%;
 }
 .peopletag .entity_statistics a {
 text-decoration:none;
+}
+.profile-lister {
+list-style-type:none;
+}
+.profile-lister li {
+min-height:30px;
+padding:5px;
+clear:both;
+}
+.profile-lister li a {
+text-decoration:none;
+}
+.profile-lister li .photo {
+display:inline;
+margin-right:7px;
+margin-bottom:-5px;
+}
+.profile-lister li .fn {
+font-weight:bold;
+}
+#profile_search_results {
+border-radius:4px;
+-moz-border-radius:4px;
+-webkit-border-radius:4px;
+}
+.form_peopletag_edit_user_search legend,
+.form_peopletag_edit_user_search label,
+.form_peopletag_edit_user_search .form_guide {
+display:none;
+}
+.form_peopletag_edit_user_search #field {
+height:30px;
+}
+.form_user_remove_peopletag,
+.form_user_add_peopletag {
+float:right;
+}
+.form_user_add_peopletag input.submit,
+.form_user_remove_peopletag input.submit {
+width:100px;
+padding-left:25px;
+text-align:left;
 }
 .profile .entity_profile .fn.nickname,
 .profile .entity_profile .url[rel~=contact] {

@@ -864,6 +864,13 @@ class Router
                 }
 
                 // people tags
+
+                $m->connect('main/addpeopletag', array('action' => 'addpeopletag'));
+
+                $m->connect('main/removepeopletag', array('action' => 'removepeopletag'));
+
+                $m->connect('main/profilecompletion', array('action' => 'profilecompletion'));
+
                 $m->connect(':nickname/peopletags',
                                 array('action' => 'peopletagsbyuser',
                                       'nickname' => '[a-zA-Z0-9]{1,64}'));

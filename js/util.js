@@ -310,6 +310,42 @@ var SN = { // StatusNet
             });
         },
 
+        FormProfileSearchXHR: function(form) {
+            $.ajax({
+                type: 'POST',
+                dataType: 'xml',
+                url: form.attr('action'),
+                data: form.serialize() + '&ajax=1',
+                beforeSend: function(xhr) {
+                    form
+                        .addClass(SN.C.S.Processing)
+                        .find('.submit')
+                            .addClass(SN.C.S.Disabled)
+                            .attr(SN.C.S.Disabled, SN.C.S.Disabled);
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    alert(errorThrown || textStatus);
+                },
+                success: function(data, textStatus) {
+                    var results_placeholder = $('#profile_search_results');
+                    if (typeof($('ul', data)[0]) != 'undefined') {
+                        var list = document._importNode($('ul', data)[0], true);
+                        results_placeholder.replaceWith(list);
+                    }
+                    else {
+                        var _error = $('<li/>').append(document._importNode($('p', data)[0], true)); 
+                        results_placeholder.html(_error);
+                    }
+                    form
+                        .removeClass(SN.C.S.Processing)
+                        .find('.submit')
+                            .removeClass(SN.C.S.Disabled)
+                            .attr(SN.C.S.Disabled, false);
+                }
+            });
+        },
+
+
         NoticeReply: function() {
             if ($('#'+SN.C.S.NoticeDataText).length > 0 && $('#content .notice_reply').length > 0) {
                 $('#content .notice').each(function() { SN.U.NoticeReplyTo($(this)); });
@@ -743,8 +779,18 @@ var SN = { // StatusNet
                 $('.form_user_nudge').live('click', function() { SN.U.FormXHR($(this)); return false; });
                 $('.form_peopletag_subscribe').live('click', function() { SN.U.FormXHR($(this)); return false; });
                 $('.form_peopletag_unsubscribe').live('click', function() { SN.U.FormXHR($(this)); return false; });
+                $('.form_user_add_peopletag').live('click', function() { SN.U.FormXHR($(this)); return false; });
+                $('.form_user_remove_peopletag').live('click', function() { SN.U.FormXHR($(this)); return false; });
 
                 SN.U.NewDirectMessage();
+            }
+        },
+
+        ProfileSearch: function() {
+            if ($('body.user_in').length > 0) {
+                $('.form_peopletag_edit_user_search input.submit').live('click', function() {
+                    SN.U.FormProfileSearchXHR($(this).parents('form')); return false;
+                });
             }
         },
 
@@ -790,6 +836,9 @@ $(document).ready(function(){
     }
     if ($('#form_login').length > 0) {
         SN.Init.Login();
+    }
+    if ($('#profile_search_results').length > 0) {
+        SN.Init.ProfileSearch();
     }
     if ($('.user_profile_tags').length > 0) {
         SN.Init.OtherTags();
