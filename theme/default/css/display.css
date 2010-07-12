@@ -213,7 +213,7 @@ button.minimize,
 #realtime_play,
 #realtime_pause,
 #realtime_popup,
-.profile_tags_edit_button {
+.peopletags_edit_button {
 background-image:url(../../base/images/icons/icons-01.gif);
 background-repeat:no-repeat;
 background-color:transparent;
@@ -345,11 +345,11 @@ margin:10px 0;
 border:1px #ddd solid;
 }
 
-.entity_edit a, .profile_tags_edit_button {
+.entity_edit a, .peopletags_edit_button {
 background-position: 5px -719px;
 }
 
-.profile_tags_edit_button {
+.peopletags_edit_button {
 background-position: 0px -724px;
 }
 

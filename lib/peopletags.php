@@ -93,7 +93,13 @@ class PeopletagsWidget extends Widget
         $this->out->elementStart('dl', 'entity_tags user_profile_tags');
         $this->out->element('dt', null, $this->label());
         $this->out->elementStart('dd');
-        $this->out->elementStart('ul', 'tags xoxo');
+
+        $class = 'tags xoxo';
+        if ($this->isEditable()) {
+            $class .= ' editable';
+        }
+
+        $this->out->elementStart('ul', $class);
         foreach ($this->tags as $tag) {
             $this->out->elementStart('li');
             // Avoid space by using raw output.
@@ -105,7 +111,7 @@ class PeopletagsWidget extends Widget
         }
         $this->out->elementEnd('ul');
 
-        if (!empty($this->user) && $this->tagger->id == $this->user->id) {
+        if ($this->isEditable()) {
             $this->showEditTagForm();
         }
 
@@ -141,10 +147,24 @@ class PeopletagsWidget extends Widget
         $this->out->elementStart('dl', 'entity_tags user_profile_tags');
         $this->out->element('dt', null, $this->label());
         $this->out->elementStart('dd');
-        $this->out->element('span', 'tags', _('(None)'));
-        $this->showEditTagForm();
+
+        $class = 'tags';
+        if ($this->isEditable()) {
+            $class .= ' editable';
+        }
+
+        $this->out->element('span', $class, _('(None)'));
+
+        if ($this->isEditable()) {
+            $this->showEditTagForm();
+        }
         $this->out->elementEnd('dd');
         $this->out->elementEnd('dl');
+    }
+
+    function isEditable()
+    {
+        return !empty($this->user) && $this->tagger->id == $this->user->id;
     }
 }
 

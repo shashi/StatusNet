@@ -95,8 +95,7 @@ class SearchProfileForm extends Form
 
     function formLegend()
     {
-        $this->out->element('legend', null, sprintf(_('Search and list people'),
-            $this->profile->nickname, $this->peopletag->tag));
+        $this->out->element('legend', null, sprintf(_('Search and list people')));
     }
 
     /**

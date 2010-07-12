@@ -180,11 +180,15 @@ font-weight:bold;
 .form_entity_block legend,
 #form_filter_bytag legend,
 #apioauthauthorize_allowdeny,
-.user_profile_tags .form_tag_user_wrap,
+.form_tag_user_wrap form,
+.form_tag_user_wrap label,
 .form_tag_user_wrap legend {
 display:none;
 }
-
+.form_tag_user_wrap {
+float:left;
+width:auto;
+}
 .form_settings .form_data p.form_guide {
 clear:both;
 margin-left:26%;
@@ -691,7 +695,7 @@ margin-left:113px;
 margin-bottom:4px;
 }
 
-.profile_tags_edit_button {
+.peopletags_edit_button {
 border:0;
 padding:0;
 width:16px;
@@ -1026,6 +1030,7 @@ width:auto;
 }
 .entity_profile .entity_tags dt {
 display:inline;
+float:left;
 margin-right:11px;
 }
 
@@ -1325,7 +1330,7 @@ margin-left:0;
 .notice-options input,
 .notice-options a,
 .notice-options .repeated,
-.profile_tags_edit_button {
+.peopletags_edit_button {
 text-indent:-9999px;
 outline:none;
 }

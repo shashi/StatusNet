@@ -345,6 +345,35 @@ var SN = { // StatusNet
             });
         },
 
+        FormPeopletagsXHR: function(form) {
+            $.ajax({
+                type: 'POST',
+                dataType: 'xml',
+                url: form.attr('action'),
+                data: form.serialize() + '&ajax=1',
+                beforeSend: function(xhr) {
+                    form
+                        .addClass(SN.C.S.Processing)
+                        .find('.submit')
+                            .addClass(SN.C.S.Disabled)
+                            .attr(SN.C.S.Disabled, SN.C.S.Disabled);
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    alert(errorThrown || textStatus);
+                },
+                success: function(data, textStatus) {
+                    var results_placeholder = form.parents('.entity_tags');
+                    if (typeof($('.entity_tags', data)[0]) != 'undefined') {
+                        var tags = document._importNode($('.entity_tags', data)[0], true);
+                        results_placeholder.replaceWith(tags);
+                        SN.Init.PeopleTags()
+                    }
+                    else {
+                        results_placeholder.html(document._importNode($('p', data)[0], true));
+                    }
+                }
+            });
+        },
 
         NoticeReply: function() {
             if ($('#'+SN.C.S.NoticeDataText).length > 0 && $('#content .notice_reply').length > 0) {
@@ -807,18 +836,23 @@ var SN = { // StatusNet
                 return true;
             });
         },
-        OtherTags: function() {
-            $('.user_profile_tags .tags').append(
-                $('<button class="profile_tags_edit_button">edit</button>').hide()
-                    .click(function () {
-                        $(this).parent().hide().parent().parent().find('dt').hide();
-                        $(this).parent().parent().find('.form_tag_user_wrap').show();
+
+        PeopleTags: function() {
+            $('.user_profile_tags .editable').append(
+                $('<button class="peopletags_edit_button">edit</button>').hide()
+                    .click(function() {
+                        var form = $(this).parents('dd').find('form');
+                        $(this).parents('ul').fadeOut(200, function() {form.fadeIn(200)});
                     })
             );
-            $('.user_profile_tags').hover(function() {
-                $(this).find('.profile_tags_edit_button').show();
+            $('.user_profile_tags .editable').hover(function() {
+                $(this).find('.peopletags_edit_button').show();
             }, function() {
-                $(this).find('.profile_tags_edit_button').hide();
+                $(this).find('.peopletags_edit_button').hide();
+            });
+
+            $('.user_profile_tags form .submit').live('click', function() {
+                SN.U.FormPeopletagsXHR($(this).parents('form')); return false;
             });
         }
     }
@@ -840,8 +874,8 @@ $(document).ready(function(){
     if ($('#profile_search_results').length > 0) {
         SN.Init.ProfileSearch();
     }
-    if ($('.user_profile_tags').length > 0) {
-        SN.Init.OtherTags();
+    if ($('.user_profile_tags .editable').length > 0) {
+        SN.Init.PeopleTags();
     }
 });
 

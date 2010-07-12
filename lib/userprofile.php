@@ -204,13 +204,13 @@ class UserProfile extends Widget
     function showProfileTags()
     {
         $cur = common_current_user();
-        $self_tags = new SelftagsWidget($this->out, $cur, $this->profile, $cur);
+        $self_tags = new SelftagsWidget($this->out, $this->profile, $this->profile, $cur);
         $self_tags->show();
 
         if ($cur) {
             // don't show self-tags again
             if ($cur->id != $this->profile->id) {
-                $tags = new PeopletagsWidget($this->out, $this->profile, $this->profile);
+                $tags = new PeopletagsWidget($this->out, $cur, $this->profile);
                 $tags->show();
             }
         }

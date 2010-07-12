@@ -65,11 +65,6 @@ class Profile_tag extends Memcached_DataObject
 
         $to_insert = array_diff($newtags, $oldtags);
 
-        $profile_tag = new Profile_tag();
-
-        $profile_tag->tagger = $tagger;
-        $profile_tag->tagged = $tagged;
-
         foreach ($to_delete as $deltag) {
             self::unTag($tagger, $tagged, $deltag);
         }
@@ -191,10 +186,9 @@ class Profile_tag extends Memcached_DataObject
             return false;
         }
 
-        $record = Profile_list::cleanupTag($tagger, $tag);
-        if ($record) {
-            $record->blowTaggedCount();
-        }
+        $ptag = Profile_list::pkeyGet(array('tagger' => $tagger, 'tag' => $tag));
+        $ptag->blowTaggedCount();
+
         return true;
     }
 }

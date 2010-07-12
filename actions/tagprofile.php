@@ -19,7 +19,8 @@
 
 if (!defined('STATUSNET') && !defined('LACONICA')) { exit(1); }
 
-require_once(INSTALLDIR.'/lib/settingsaction.php');
+require_once INSTALLDIR . '/lib/settingsaction.php';
+require_once INSTALLDIR . '/lib/peopletags.php';
 
 class TagprofileAction extends Action
 {
@@ -201,12 +202,15 @@ class TagprofileAction extends Action
             $this->element('title', null, _('Tags'));
             $this->elementEnd('head');
             $this->elementStart('body');
-            $this->elementStart('p', 'subtags');
 
-            $widget = new PeopletagsWidget($this, $user, $this->profile);
-            $widget->show();
+            if ($user->id == $this->profile->id) {
+                $widget = new SelftagsWidget($this, $user, $this->profile);
+                $widget->show();
+            } else {
+                $widget = new PeopletagsWidget($this, $user, $this->profile);
+                $widget->show();
+            }
 
-            $this->elementEnd('p');
             $this->elementEnd('body');
             $this->elementEnd('html');
         } else {
