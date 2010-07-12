@@ -153,7 +153,9 @@ class PeopletagsWidget extends Widget
             $class .= ' editable';
         }
 
-        $this->out->element('span', $class, _('(None)'));
+        $this->out->elementStart('ul', $class);
+        $this->out->element('li', null, _('(None)'));
+        $this->out->elementEnd('ul');
 
         if ($this->isEditable()) {
             $this->showEditTagForm();
