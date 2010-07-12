@@ -57,6 +57,9 @@ class Profile_tag extends Memcached_DataObject
         $newtags = array_unique($newtags);
         $oldtags = Profile_tag::getTags($tagger, $tagged);
 
+        $ptag = new Profile_tag();
+        $ptag->query('BEGIN');
+
         # Delete stuff that's in old and not in new
 
         $to_delete = array_diff($oldtags, $newtags);
@@ -72,8 +75,7 @@ class Profile_tag extends Memcached_DataObject
         foreach ($to_insert as $instag) {
             self::setTag($tagger, $tagged, $instag);
         }
-
-        return true;
+        return $ptag->query('COMMIT');
     }
 
     # set a single tag
