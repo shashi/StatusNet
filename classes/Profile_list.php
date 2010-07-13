@@ -18,6 +18,8 @@ class Profile_list extends Memcached_DataObject
     public $modified;                        // timestamp   not_null default_CURRENT_TIMESTAMP
     public $uri;                             // varchar(255)  unique_key
     public $mainpage;                        // varchar(255)
+    public $tagged_count;                    // smallint
+    public $subscriber_count;                // smallint
 
     /* Static get */
     function staticGet($k,$v=NULL) { return DB_DataObject::staticGet('Profile_list',$k,$v); }
@@ -195,67 +197,6 @@ class Profile_list extends Memcached_DataObject
         return $tagged;
     }
 
-    function subscriberCount()
-    {
-        $c = common_memcache();
-        if (!empty($c)) {
-            $cnt = $c->get(common_cache_key('profile_list:subscriber_count:'.$this->id));
-            if (is_integer($cnt)) {
-                return (int) $cnt;
-            }
-        }
-
-        $sub = new Profile_tag_subscription();
-        $sub->profile_tag_id = $this->id;
-
-        $cnt = (int) $sub->count('distinct profile_id');
-
-        if (!empty($c)) {
-            $c->set(common_cache_key('profile_list:subscriber_count:'.$this->id), $cnt);
-        }
-
-        return $cnt;
-    }
-
-    function blowSubscriberCount()
-    {
-        $c = common_memcache();
-        if (!empty($c)) {
-            $c->delete(common_cache_key('profile_list:subscriber_count:'.$this->id));
-        }
-    }
-
-    function taggedCount()
-    {
-        $c = common_memcache();
-        if (!empty($c)) {
-            $cnt = $c->get(common_cache_key('profile_list:tagged_count:'.$this->id));
-            if (is_integer($cnt)) {
-                return (int) $cnt;
-            }
-        }
-
-        $tag = new Profile_tag();
-        $tag->tag = $this->tag;
-        $tag->tagger = $this->tagger;
-
-        $cnt = (int) $tag->count('distinct tagged');
-
-        if (!empty($c)) {
-            $c->set(common_cache_key('profile:tagged_count:'.$this->id), $cnt);
-        }
-
-        return $cnt;
-    }
-
-    function blowTaggedCount()
-    {
-        $c = common_memcache();
-        if (!empty($c)) {
-            $c->delete(common_cache_key('profile_list:tagged_count:'.$this->id));
-        }
-    }
-
     function delete()
     {
         Profile_tag::deleteTag($this->tagger, $this->tag);
@@ -295,6 +236,37 @@ class Profile_list extends Memcached_DataObject
     {
         $noun = ActivityObject::fromPeopletag($this);
         return $noun->asString('activity:' . $element);
+    }
+
+    function taggedCount($recount=false)
+    {
+        if (!$recount) {
+            return $this->tagged_count;
+        }
+
+        $tags = new Profile_tag();
+        $tags->tag = $this->tag;
+        $tags->tagger = $this->tagger;
+        $orig = clone($this);
+        $this->tagged_count = (int) $tags->count('distinct tagged');
+        $this->update($orig);
+
+        return $this->tagged_count;
+    }
+
+    function subscriberCount($recount=false)
+    {
+        if ($recount) {
+            return $this->subscriber_count;
+        }
+
+        $sub = new Profile_tag_subscription();
+        $sub->profile_tag_id = $this->id;
+        $orig = clone($this);
+        $this->subscriber_count = (int) $sub->count('distinct profile_id');
+        $this->update($orig);
+
+        return $this->subscriber_count;
     }
 
     static function getByTaggerAndTag($tagger, $tag)

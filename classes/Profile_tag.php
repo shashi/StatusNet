@@ -109,7 +109,7 @@ class Profile_tag extends Memcached_DataObject
                 $newtag->delete();
                 return false;
             }
-            $profile_list->blowTaggedCount();
+            $profile_list->taggedCount(true);
         }
 
         return $newtag;
@@ -126,8 +126,17 @@ class Profile_tag extends Memcached_DataObject
         if (Event::handle('StartUntagProfile', array($ptag))) {
             $orig = clone($ptag);
             $result = $ptag->delete();
+            if (!$result) {
+                common_log_db_error($this, 'DELETE', __FILE__);
+                return false;
+            }
             Event::handle('EndUntagProfile', array($orig));
-            return $result;
+            if ($result) {
+                $profile_list = Profile_list::pkeyGet(array('tag' => $tag, 'tagger' => $tagger));
+                $profile_list->taggedCount(true);
+                return true;
+            }
+            return false;
         }
     }
 
@@ -174,23 +183,6 @@ class Profile_tag extends Memcached_DataObject
             common_log_db_error($tags, 'UPDATE', __FILE__);
             return false;
         }
-        return true;
-    }
-
-    function delete()
-    {
-        $tagger = $this->tagger;
-        $tag    = $this->tag;
-
-        $result = parent::delete();
-        if (!$result) {
-            common_log_db_error($this, 'DELETE', __FILE__);
-            return false;
-        }
-
-        $ptag = Profile_list::pkeyGet(array('tagger' => $tagger, 'tag' => $tag));
-        $ptag->blowTaggedCount();
-
         return true;
     }
 }

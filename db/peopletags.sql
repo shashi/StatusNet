@@ -12,6 +12,8 @@ create table profile_list (
 
     uri varchar(255) unique key comment 'universal identifier',
     mainpage varchar(255) comment 'page for tag info info to link to',
+    tagged_count smallint not null default 0 comment 'number of people tagged',
+    subscriber_count smallint not null default 0 comment 'number of people subscribing',
 
     constraint primary key (tagger, tag),
     index profile_tag_tag_idx (tag)

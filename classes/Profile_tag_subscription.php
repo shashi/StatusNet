@@ -49,7 +49,7 @@ class Profile_tag_subscription extends Memcached_DataObject
         }
 
         $ptag = Profile_list::staticGet('id', $profile_tag_id);
-        $ptag->blowSubscriberCount();
+        $ptag->subscriberCount(true);
         return $ptag;
     }
 
@@ -70,7 +70,7 @@ class Profile_tag_subscription extends Memcached_DataObject
         }
 
         $ptag = Profile_list::staticGet('id', $profile_tag_id);
-        $ptag->blowSubscriberCount();
+        $ptag->subscriberCount(true);
         return true;
     }
 }
