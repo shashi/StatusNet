@@ -68,7 +68,18 @@ class TagprofileAction extends Action
     function showForm($error=null)
     {
         $this->error = $error;
-        $this->showPage();
+        if ($this->boolean('ajax')) {
+            $this->startHTML('text/xml;charset=utf-8');
+            $this->elementStart('head');
+            $this->element('title', null, _('Error'));
+            $this->elementEnd('head');
+            $this->elementStart('body');
+            $this->element('p', 'error', $error);
+            $this->elementEnd('body');
+            $this->elementEnd('html');
+        } else {
+            $this->showPage();
+        }
     }
 
     function showContent()

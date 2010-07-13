@@ -352,8 +352,7 @@ var SN = { // StatusNet
                 url: form.attr('action'),
                 data: form.serialize() + '&ajax=1',
                 beforeSend: function(xhr) {
-                    form
-                        .addClass(SN.C.S.Processing)
+                    form.addClass(SN.C.S.Processing)
                         .find('.submit')
                             .addClass(SN.C.S.Disabled)
                             .attr(SN.C.S.Disabled, SN.C.S.Disabled);
@@ -369,7 +368,11 @@ var SN = { // StatusNet
                         SN.Init.PeopleTags()
                     }
                     else {
-                        results_placeholder.html(document._importNode($('p', data)[0], true));
+                        results_placeholder.append(document._importNode($('p', data)[0], true));
+                        form.removeClass(SN.C.S.Processing)
+                            .find('.submit')
+                                .removeClass(SN.C.S.Disabled)
+                                .attr(SN.C.S.Disabled, false);
                     }
                 }
             });
@@ -839,17 +842,12 @@ var SN = { // StatusNet
 
         PeopleTags: function() {
             $('.user_profile_tags .editable').append(
-                $('<button class="peopletags_edit_button">edit</button>').hide()
+                $('<button class="peopletags_edit_button">edit</button>')
                     .click(function() {
                         var form = $(this).parents('dd').find('form');
                         $(this).parents('ul').fadeOut(200, function() {form.fadeIn(200)});
                     })
             );
-            $('.user_profile_tags .editable').parents('dl').hover(function() {
-                $(this).find('.peopletags_edit_button').show();
-            }, function() {
-                $(this).find('.peopletags_edit_button').hide();
-            });
 
             $('.user_profile_tags form .submit').live('click', function() {
                 SN.U.FormPeopletagsXHR($(this).parents('form')); return false;
