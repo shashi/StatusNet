@@ -123,8 +123,7 @@ class PeopletagsWidget extends Widget
     {
         $this->out->elementStart('span', 'form_tag_user_wrap');
         $this->out->elementStart('form', array('method' => 'post',
-                                           'id' => 'form_tag_user',
-                                           'class' => 'form_settings',
+                                           'class' => 'form_tag_user',
                                            'name' => 'tagprofile',
                                            'action' => common_local_url('tagprofile', array('id' => $this->tagged->id))));
 

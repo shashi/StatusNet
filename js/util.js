@@ -845,7 +845,7 @@ var SN = { // StatusNet
 
             $('.peopletags_edit_button').live('click', function() {
                 var form = $(this).parents('dd').eq(0).find('form');
-                $(this).parents('ul').eq(0).fadeOut(200, function() {form.fadeIn(200)});
+                $(this).parents('ul').eq(0).fadeOut(200, function() {form.fadeIn(200).find('input#tags').focus()});
             })
 
             $('.user_profile_tags form .submit').live('click', function() {

@@ -186,10 +186,13 @@ font-weight:bold;
 display:none;
 }
 .form_tag_user_wrap {
+clear:both;
+}
+.form_tag_user {
 float:left;
 width:auto;
 }
-.form_tag_user_wrap input.submit {
+.form_tag_user input.submit {
 width:50px;
 }
 .form_settings .form_data p.form_guide {
@@ -1030,6 +1033,7 @@ clear:none;
 .profile .entity_profile .entity_tags,
 .profile .entity_profile .form_subscription_edit {
 margin-left:59px;
+margin-bottom:7px;
 clear:none;
 display:block;
 width:auto;
@@ -1039,7 +1043,9 @@ display:inline;
 float:left;
 margin-right:11px;
 }
-
+.profile .entity_profile .form_subscription_edit {
+clear:left;
+}
 .profile .entity_profile .form_subscription_edit label {
 font-weight:normal;
 margin-right:11px;
