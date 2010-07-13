@@ -364,8 +364,8 @@ var SN = { // StatusNet
                     var results_placeholder = form.parents('.entity_tags');
                     if (typeof($('.entity_tags', data)[0]) != 'undefined') {
                         var tags = document._importNode($('.entity_tags', data)[0], true);
+                        $(tags).find('.editable').append($('<button class="peopletags_edit_button"/>'));
                         results_placeholder.replaceWith(tags);
-                        SN.Init.PeopleTags()
                     }
                     else {
                         results_placeholder.append(document._importNode($('p', data)[0], true));
@@ -841,13 +841,12 @@ var SN = { // StatusNet
         },
 
         PeopleTags: function() {
-            $('.user_profile_tags .editable').append(
-                $('<button class="peopletags_edit_button">edit</button>')
-                    .click(function() {
-                        var form = $(this).parents('dd').find('form');
-                        $(this).parents('ul').fadeOut(200, function() {form.fadeIn(200)});
-                    })
-            );
+            $('.user_profile_tags .editable').append($('<button class="peopletags_edit_button"/>'));
+
+            $('.peopletags_edit_button').live('click', function() {
+                var form = $(this).parents('dd').eq(0).find('form');
+                $(this).parents('ul').eq(0).fadeOut(200, function() {form.fadeIn(200)});
+            })
 
             $('.user_profile_tags form .submit').live('click', function() {
                 SN.U.FormPeopletagsXHR($(this).parents('form')); return false;
