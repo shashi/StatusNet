@@ -114,10 +114,7 @@ class SubscribepeopletagAction extends Action
         $cur = common_current_user();
 
         try {
-            if (Event::handle('StartSubscribePeopletag', array($this->peopletag, $cur))) {
-                Profile_tag_subscription::add($this->peopletag->id, $cur->id);
-                Event::handle('EndSubscribePeopletag', array($this->peopletag, $cur));
-            }
+            Profile_tag_subscription::add($this->peopletag, $cur);
         } catch (Exception $e) {
             $this->serverError(sprintf(_('Could not subscribe user %1$s to peopletag %2$s.'),
                                        $cur->nickname, $this->peopletag->tag));

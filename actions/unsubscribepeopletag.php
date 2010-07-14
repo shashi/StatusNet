@@ -114,9 +114,7 @@ class UnsubscribepeopletagAction extends Action
         $cur = common_current_user();
 
         try {
-            if (Event::handle('StartUnsubscribePeopletag', array($this->peopletag, $cur))) {
-                Profile_tag_subscription::remove($this->peopletag->id, $cur->id);
-                Event::handle('EndUnsubscribePeopletag', array($this->peopletag, $cur));
+                Profile_tag_subscription::remove($this->peopletag, $cur);
             }
         } catch (Exception $e) {
             $this->serverError(sprintf(_('Could not unsubscriber user %1$s from peopletag %2$s.'),
