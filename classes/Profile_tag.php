@@ -31,31 +31,48 @@ class Profile_tag extends Memcached_DataObject
         return array('tagger,tag' => 'profile_list:tagger,tag');
     }
 
-    static function getTags($tagger, $tagged) {
+    function getMeta()
+    {
+        return Profile_list::pkeyGet(array('tagger' => $this->tagger, 'tag' => $this->tag));
+    }
 
-        $tags = array();
+    static function getTags($tagger, $tagged, $private=null) {
 
         # XXX: store this in memcached
 
-        $profile_tag = new Profile_tag();
-        $profile_tag->tagger = $tagger;
-        $profile_tag->tagged = $tagged;
-
-        $profile_tag->find();
-
-        while ($profile_tag->fetch()) {
-            $tags[] = $profile_tag->tag;
+        $profile_list = new Profile_list();
+        if ($private !== null) {
+            // 0 or 1
+            $profile_list->private = (int) (bool) ($private);
         }
 
-        $profile_tag->free();
+        $profile_tag = new Profile_tag();
+        $profile_list->tagger = $tagger;
+        $profile_tag->tagged = $tagged;
 
-        return $tags;
+        $profile_list->selectAdd();
+
+        // only fetch id, tag, mainpage and
+        // private hoping this will be faster
+        $profile_list->selectAdd('profile_list.id, ' .
+                                 'profile_list.tag, ' .
+                                 'profile_list.mainpage, ' .
+                                 'profile_list.private');
+        $profile_list->joinAdd($profile_tag);
+        $profile_list->find();
+
+        return $profile_list;
     }
 
     static function setTags($tagger, $tagged, $newtags) {
 
         $newtags = array_unique($newtags);
-        $oldtags = Profile_tag::getTags($tagger, $tagged);
+        $oldtags = array();
+        $tags    = Profile_tag::getTags($tagger, $tagged);
+        while ($tags->fetch()) {
+            $oldtags[] = $tags->tag;
+        }
+        $tags->free();
 
         $ptag = new Profile_tag();
         $ptag->query('BEGIN');

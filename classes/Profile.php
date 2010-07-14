@@ -348,6 +348,17 @@ class Profile extends Memcached_DataObject
         return $groups;
     }
 
+    function getPeopletags($tagger=null, $private=null)
+    {
+        if ($tagger === null) {
+            $tagger_id = $this->id;
+        } else {
+            $tagger_id = $tagger->id;
+        }
+
+        return Profile_tag::getTags($tagger->id, $tagged_id, $private);
+    }
+
     function getOwnedTags($offset=0, $limit=null, $since_id=0, $max_id=0)
     {
         $tags = new Profile_list();

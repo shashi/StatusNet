@@ -248,9 +248,9 @@ class ProfileListItem extends Widget
         $user = common_current_user();
         if (!empty($user)) {
             if ($user->id == $this->profile->id) {
-                $tags = new SelftagsWidget($this->out, $user, $this->profile, $user);
+                $tags = new SelftagsWidget($this->out, $user, $this->profile);
             } else {
-                $tags = new PeopletagsWidget($this->out, $user, $this->profile, $user);
+                $tags = new PeopletagsWidget($this->out, $user, $this->profile);
             }
             $tags->show();
         }

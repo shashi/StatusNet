@@ -161,8 +161,15 @@ class TagprofileAction extends Action
 
         $this->elementStart('ul', 'form_data');
         $this->elementStart('li');
+
+        $tag = Profile_tag::getTags($user->id, $this->profile->id, true);
+        $tags = array();
+        while ($tag->fetch()) {
+            $tags[] = $tag->tag;
+        }
+
         $this->input('tags', _('Tags'),
-                     ($this->arg('tags')) ? $this->arg('tags') : implode(' ', Profile_tag::getTags($user->id, $this->profile->id)),
+                     ($this->arg('tags')) ? $this->arg('tags') : implode(' ', $tags),
                      _('Tags for this user (letters, numbers, -, ., and _), comma- or space- separated'));
         $this->elementEnd('li');
         $this->elementEnd('ul');

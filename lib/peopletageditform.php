@@ -125,6 +125,7 @@ class PeopletagEditForm extends Form
         $id = $this->peopletag->id;
         $tag = $this->peopletag->tag;
         $description = $this->peopletag->description;
+        $private = $this->peopletag->private;
 
         $this->out->elementStart('ul', 'form_data');
 
@@ -145,6 +146,7 @@ class PeopletagEditForm extends Form
         $this->out->textarea('description', _('Description'),
                              ($this->out->arg('description')) ? $this->out->arg('description') : $description,
                              $descinstr);
+        $this->out->checkbox('private', _('Private'), $private);
         $this->out->elementEnd('li');
         $this->out->elementEnd('ul');
     }

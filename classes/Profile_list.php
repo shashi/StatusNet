@@ -14,6 +14,7 @@ class Profile_list extends Memcached_DataObject
     public $tagger;                          // int(4)
     public $tag;                             // varchar(64)
     public $description;                     // text
+    public $private;                         // tinyint(1)
     public $created;                         // datetime   not_null default_0000-00-00%2000%3A00%3A00
     public $modified;                        // timestamp   not_null default_CURRENT_TIMESTAMP
     public $uri;                             // varchar(255)  unique_key

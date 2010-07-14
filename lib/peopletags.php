@@ -48,18 +48,22 @@ class PeopletagsWidget extends Widget
      * or an array of strings (tags)
      */
 
-    var $tags=null;
+    var $tag=null;
 
     var $user=null;
     var $tagger=null;
     var $tagged=null;
 
-    function __construct($out, $tagger, $tagged, $user=null)
+    function __construct($out, $tagger, $tagged, $private=-1)
     {
         parent::__construct($out);
-        $this->tags = Profile_tag::getTags($tagger->id, $tagged->id);
 
-        $this->user   = empty($user) ? common_current_user() : $user;
+        $this->user   = common_current_user();
+        if ($private === -1) {
+            $private = empty($this->user) ? false : null;
+        }
+
+        $this->tag = Profile_tag::getTags($tagger->id, $tagged->id, $private);
         $this->tagger = $tagger;
         $this->tagged = $tagged;
     }
@@ -67,7 +71,7 @@ class PeopletagsWidget extends Widget
     function show()
     {
         if (Event::handle('StartShowPeopletags', array($this->out, $this->tagger, $this->tagged))) {
-            if (count($this->tags) > 0) {
+            if ($this->tag->N > 0) {
                 $this->showTags();
             }
             else {
@@ -77,10 +81,9 @@ class PeopletagsWidget extends Widget
         }
     }
 
-    function url($tag)
+    function url()
     {
-        return common_local_url('showprofiletag',
-                   array('tagger' => $this->tagger->nickname, 'tag' => $tag));
+        return $this->tag->homeUrl();
     }
 
     function label()
@@ -99,27 +102,31 @@ class PeopletagsWidget extends Widget
             $class .= ' editable';
         }
 
+        $tags = array();
         $this->out->elementStart('ul', $class);
-        foreach ($this->tags as $tag) {
-            $this->out->elementStart('li');
+        while ($this->tag->fetch()) {
+            $mode = $this->tag->private ? 'private' : 'public';
+            $tags[] = $this->tag->tag;
+
+            $this->out->elementStart('li', 'hashptag mode-' . $mode);
             // Avoid space by using raw output.
             $pt = '<span class="mark_hash">#</span><a rel="tag" href="' .
-              $this->url($tag) .
-              '">' . $tag . '</a>';
+              $this->url($this->tag->tag) .
+              '">' . $this->tag->tag . '</a>';
             $this->out->raw($pt);
             $this->out->elementEnd('li');
         }
         $this->out->elementEnd('ul');
 
         if ($this->isEditable()) {
-            $this->showEditTagForm();
+            $this->showEditTagForm($tags);
         }
 
         $this->out->elementEnd('dd');
         $this->out->elementEnd('dl');
     }
 
-    function showEditTagForm()
+    function showEditTagForm($tags=null)
     {
         $this->out->elementStart('span', 'form_tag_user_wrap');
         $this->out->elementStart('form', array('method' => 'post',
@@ -132,8 +139,12 @@ class PeopletagsWidget extends Widget
         $this->out->hidden('token', common_session_token());
         $this->out->hidden('id', $this->tagged->id);
 
+        if (!$tags) {
+            $tags = array();
+        }
+
         $this->out->input('tags', $this->label(),
-                     ($this->out->arg('tags')) ? $this->out->arg('tags') : implode(' ', $this->tags));
+                     ($this->out->arg('tags')) ? $this->out->arg('tags') : implode(' ', $tags));
         $this->out->submit('save', _('Save'));
 
         $this->out->elementEnd('fieldset');

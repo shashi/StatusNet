@@ -473,7 +473,14 @@ class ApiAction extends Action
         $twitter_list['subscriber_count'] = $list->subscriberCount();
         $twitter_list['member_count'] = $list->taggedCount();
         $twitter_list['uri'] = $list->getUri();
-        $twitter_list['mode'] = 'public';
+
+        if (isset($this->auth_user)) {
+            $twitter_list['following'] = $list->hasSubscriber($this->auth_user);
+        } else {
+            $twitter_list['following'] = false;
+        }
+
+        $twitter_list['mode'] = ($list->private) ? 'private' : 'public';
         $twitter_list['user'] = $this->twitterUserArray($profile, false);
 
         return $twitter_list;

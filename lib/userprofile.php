@@ -204,7 +204,8 @@ class UserProfile extends Widget
     function showProfileTags()
     {
         $cur = common_current_user();
-        $self_tags = new SelftagsWidget($this->out, $this->profile, $this->profile, $cur);
+
+        $self_tags = new SelftagsWidget($this->out, $this->profile, $this->profile);
         $self_tags->show();
 
         if ($cur) {

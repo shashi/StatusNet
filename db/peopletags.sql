@@ -6,6 +6,7 @@ create table profile_list (
     tagger integer not null comment 'user making the tag' references profile (id), /* this may be a remote profile :) */
     tag varchar(64) not null comment 'hash tag',
     description text comment 'description for the tag',
+    private tinyint(1) default 0 comment 'is this list private',
 
     created datetime not null comment 'date this record was created',
     modified timestamp comment 'date this record was modified',
