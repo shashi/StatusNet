@@ -133,7 +133,7 @@ class PeopletagEditForm extends Form
         $this->out->hidden('id', $id);
         $this->out->input('tag', _('Tag'),
                           ($this->out->arg('tag')) ? $this->out->arg('tag') : $tag,
-                          _('Tags for this user (letters, numbers, -, ., and _), comma- or space- separated'));
+                          _('Change the tag (letters, numbers, -, ., and _ are allowed)'));
         $this->out->elementEnd('li');
 
         $this->out->elementStart('li');
@@ -160,6 +160,11 @@ class PeopletagEditForm extends Form
     function formActions()
     {
         $this->out->submit('submit', _('Save'));
+        $this->out->submit('form_action-yes',
+                      _m('BUTTON','Delete'),
+                      'submit',
+                      'delete',
+                      _('Delete this people tag'));
     }
 
     function showProfileList()

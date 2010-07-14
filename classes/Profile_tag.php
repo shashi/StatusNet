@@ -173,28 +173,33 @@ class Profile_tag extends Memcached_DataObject
     }
 
     // @fixme: move this to Profile_list?
-    static function deleteTag($tagger, $tag) {
-        $tags = new Profile_tag();
-        $tags->tagger = $tagger;
-        $tags->tag = $tag;
-        $result = $tags->delete();
+    static function cleanup($profile_list) {
+        $ptag = new Profile_tag();
+        $ptag->tagger = $profile_list->tagger;
+        $ptag->tag = $profile_list->tag;
+        $ptag->find();
 
-        if (!$result) {
-            common_log_db_error($tags, 'DELETE', __FILE__);
-            return false;
+        while($tag->fetch()) {
+            if (Event::handle('StartUntagProfile', array($ptag))) {
+                $orig = clone($ptag);
+                $result = $ptag->delete();
+                if (!$result) {
+                    common_log_db_error($this, 'DELETE', __FILE__);
+                }
+                Event::handle('EndUntagProfile', array($orig));
+            }
         }
-        return true;
     }
 
     // move a tag!
-    static function moveTag($orig_tag, $new_tag, $orig_tagger, $new_tagger) {
+    static function moveTag($orig, $new) {
         $tags = new Profile_tag();
         $qry = 'UPDATE profile_tag SET ' .
                'tag = "%s", tagger = "%s" ' .
                'WHERE tag = "%s" ' .
                'AND tagger = "%s"';
-        $result = $tags->query(sprintf($qry, $new_tag, $new_tagger,
-                                             $orig_tag, $orig_tagger));
+        $result = $tags->query(sprintf($qry, $new->tag, $new->tagger,
+                                             $orig->tag, $orig->tagger));
 
         if (!$result) {
             common_log_db_error($tags, 'UPDATE', __FILE__);

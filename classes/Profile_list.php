@@ -53,6 +53,23 @@ class Profile_list extends Memcached_DataObject
         return $uri;
     }
 
+    function homeUrl()
+    {
+        $url = null;
+        if (Event::handle('StartUserPeopletagHomeUrl', array($this, &$url))) {
+            // normally stored in mainpage, but older ones may be null
+            if (!empty($this->mainpage)) {
+                $url = $this->mainpage;
+            } else {
+                $url = common_local_url('showprofiletag',
+                                        array('tagger' => $this->getTagger()->nickname,
+                                              'tag'    => $this->tag));
+            }
+        }
+        Event::handle('EndUserPeopletagHomeUrl', array($this, &$url));
+        return $url;
+    }
+
     function permalink()
     {
         $url = null;
@@ -166,10 +183,15 @@ class Profile_list extends Memcached_DataObject
 
     function hasSubscriber($id)
     {
+        if (!is_numeric($id)) {
+            $id = $id->id;
+        }
+
         $sub = Profile_tag_subscription::pkeyGet(array('profile_tag_id' => $this->id,
                                                        'profile_id'     => $id));
         return !empty($sub);
     }
+
     function getTagged($offset=0, $limit=null, $since=0, $upto=0)
     {
         $tagged = new Profile();
@@ -200,7 +222,17 @@ class Profile_list extends Memcached_DataObject
 
     function delete()
     {
-        Profile_tag::deleteTag($this->tagger, $this->tag);
+        // force delete one item at a time.
+        if (empty($this->id)) {
+            $this->find();
+            while ($this->fetch()) {
+                $this->delete();
+            }
+        }
+
+        Profile_tag::cleanup($this);
+        Profile_tag_subscription::cleanup($this);
+
         parent::delete();
     }
 
@@ -222,7 +254,8 @@ class Profile_list extends Memcached_DataObject
                                             'to already exists.'));
             }
             // move the tag
-            $result = Profile_tag::moveTag($orig->tag, $this->tag, $orig->tagger, $this->tagger);
+            // XXX: allow OStatus plugin to send out profile tag
+            $result = Profile_tag::moveTag($orig, $this);
         }
         parent::update($orig);
         return $result;
@@ -293,26 +326,6 @@ class Profile_list extends Memcached_DataObject
             return $new_tag;
         }
         return $ptag;
-    }
-
-    /* if there isn't use for a tag, delete it. Should be called after an untag
-       return the object if not deleted, false if deleted.
-    */
-    static function cleanupTag($tagger, $tag)
-    {
-        $existing_tags = Profile_tag::getTagged($tagger, $tag);
-        if(empty($existing_tags)) {
-            $del_tag = new Profile_list();
-            $del_tag->tagger = $tagger;
-            $del_tag->tag = $tag;
-            $result = $del_tag->delete();
-            if (!$result) {
-                common_log_db_error($del_tag, 'DELETE', __FILE__);
-                return Profile_list::getByTaggerAndTag($tagger, $tag);
-            }
-            return false;
-        }
-        return Profile_list::getByTaggerAndTag($tagger, $tag);
     }
 
     static function maxDescription()
@@ -428,7 +441,7 @@ class Profile_list extends Memcached_DataObject
             }
 
             // and one list after cursor
-            $prev = call_user_fucnc($fn, 0, 1, $cursor);
+            $prev = call_user_func($fn, 0, 1, $cursor);
             while($prev->fetch()) {
                 if(isset($lists[0]->cursor)) {
                     $prev_cursor = -1*$lists[0]->cursor;
