@@ -261,6 +261,7 @@ class Action extends HTMLOutputter // lawsuit
                 $this->script('jquery.form.js');
                 $this->script('jquery.cookie.js');
                 $this->inlineScript('if (typeof window.JSON !== "object") { $.getScript("'.common_path('js/json2.js').'"); }');
+                $this->inlineScript('function _loadAutocomplete(init) { $.getScript("'.common_path('js/jquery.autocomplete.min.js').'", init); } var _peopletagAC = "' . common_local_url('peopletagautocomplete') . '";');
                 $this->script('jquery.joverlay.min.js');
                 Event::handle('EndShowJQueryScripts', array($this));
             }

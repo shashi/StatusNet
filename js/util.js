@@ -840,12 +840,34 @@ var SN = { // StatusNet
             });
         },
 
+        PeopletagAutocomplete: function() {
+            $('.form_tag_user #tags').autocomplete(SN.C.PtagACData, {
+                multiple: true,
+                multipleSeparator: " ",
+                formatItem: function(row) {
+                    return '<span class="mode-' + row.mode + '">' + row.tag + '</span>';
+                },
+                formatResult: function(row) {
+                    return row.tag;
+                },
+                highlight: false
+            });
+        },
+
         PeopleTags: function() {
             $('.user_profile_tags .editable').append($('<button class="peopletags_edit_button"/>'));
 
             $('.peopletags_edit_button').live('click', function() {
                 var form = $(this).parents('dd').eq(0).find('form');
                 $(this).parents('ul').eq(0).fadeOut(200, function() {form.fadeIn(200).find('input#tags').focus()});
+                // We can buy time from the above animation
+                if (typeof SN.C.PtagACData === 'undefined') {
+                    $.getJSON(_peopletagAC + '?token=' + $('#token').val(), function(data) {
+                        alert(data);
+                        SN.C.PtagACData = data;
+                        _loadAutocomplete(SN.Init.PeopletagAutocomplete);
+                    });
+                } else { _loadAutocomplete(SN.Init.PeopletagAutocomplete); }
             })
 
             $('.user_profile_tags form .submit').live('click', function() {

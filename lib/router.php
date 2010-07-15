@@ -871,6 +871,8 @@ class Router
 
                 $m->connect('main/profilecompletion', array('action' => 'profilecompletion'));
 
+                $m->connect('main/peopletagautocomplete', array('action' => 'peopletagautocomplete'));
+
                 $m->connect(':nickname/peopletags',
                                 array('action' => 'peopletagsbyuser',
                                       'nickname' => '[a-zA-Z0-9]{1,64}'));
