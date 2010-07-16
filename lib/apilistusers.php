@@ -61,13 +61,14 @@ class ApiListUsersAction extends ApiAuthAction
         }
 
         $this->list = $this->getTargetList($this->arg('user'), $this->arg('list_id'));
-        if(!$this->create && !$this->delete) {
-            $this->getUsers();
-        }
 
         if (empty($this->list)) {
             $this->clientError(_('Not found'), 404, $this->format);
             return false;
+        }
+
+        if(!$this->create && !$this->delete) {
+            $this->getUsers();
         }
         return true;
     }

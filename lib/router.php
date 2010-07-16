@@ -880,6 +880,16 @@ class Router
                                 array('action' => 'peopletagsbyuser',
                                       'nickname' => '[a-zA-Z0-9]{1,64}'));
 
+                $m->connect(':nickname/peopletags/private',
+                                array('action' => 'peopletagsbyuser',
+                                      'nickname' => '[a-zA-Z0-9]{1,64}',
+                                      'private' => 1));
+
+                $m->connect(':nickname/peopletags/public',
+                                array('action' => 'peopletagsbyuser',
+                                      'nickname' => '[a-zA-Z0-9]{1,64}',
+                                      'public' => 1));
+
                 $m->connect(':nickname/othertags',
                                 array('action' => 'peopletagsforuser',
                                       'nickname' => '[a-zA-Z0-9]{1,64}'));

@@ -82,7 +82,7 @@ class PeopletagautocompleteAction extends Action
     function handle($args)
     {
         $profile = $this->user->getProfile();
-        $tags = $profile->getOwnedTags();
+        $tags = $profile->getOwnedTags(common_current_user());
 
         $tags_array = array();
         while ($tags->fetch()) {

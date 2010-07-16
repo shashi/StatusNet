@@ -121,6 +121,6 @@ class ApiListSubscriptionsAction extends ApiBareAuthAction
         $fn = array($profile, 'getTagSubscriptions');
         # 20 lists
         list($this->lists, $this->next_cursor, $this->prev_cursor) =
-                Profile_list::getAtCursor($fn, $this->cursor, 20);
+                Profile_list::getAtCursor($fn, array(), $this->cursor, 20);
     }
 }

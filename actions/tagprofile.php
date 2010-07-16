@@ -162,11 +162,7 @@ class TagprofileAction extends Action
         $this->elementStart('ul', 'form_data');
         $this->elementStart('li');
 
-        $tag = Profile_tag::getTags($user->id, $this->profile->id, true);
-        $tags = array();
-        while ($tag->fetch()) {
-            $tags[] = $tag->tag;
-        }
+        $tags = Profile_tag::getTagsArray($user->id, $this->profile->id, $user->id);
 
         $this->input('tags', _('Tags'),
                      ($this->arg('tags')) ? $this->arg('tags') : implode(' ', $tags),
@@ -237,17 +233,8 @@ class TagprofileAction extends Action
             $this->elementEnd('body');
             $this->elementEnd('html');
         } else {
-            $url = common_get_returnto();
-
-            if ($url) {
-                // We don't have to return to it again
-                common_set_returnto(null);
-                $url = common_inject_session($url);
-            } else {
-                $url = common_local_url('peopletagsbyuser',
-                                array('nickname' => $user->nickname));
-            }
-            common_redirect($url, 303);
+            $this->error = 'Tags saved.';
+            $this->showForm();
         }
     }
 

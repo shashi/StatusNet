@@ -348,21 +348,17 @@ class Profile extends Memcached_DataObject
         return $groups;
     }
 
-    function getPeopletags($tagger=null, $private=null)
-    {
-        if ($tagger === null) {
-            $tagger_id = $this->id;
-        } else {
-            $tagger_id = $tagger->id;
-        }
-
-        return Profile_tag::getTags($tagger->id, $tagged_id, $private);
-    }
-
-    function getOwnedTags($offset=0, $limit=null, $since_id=0, $max_id=0)
+    function getOwnedTags($auth_user, $offset=0, $limit=null, $since_id=0, $max_id=0)
     {
         $tags = new Profile_list();
         $tags->tagger = $this->id;
+
+        if (($auth_user instanceof User || $auth_user instanceof Profile) &&
+                $auth_user->id === $this->id) {
+            // no condition, get both private and public tags
+        } else {
+            $tags->private = false;
+        }
 
         $tags->selectAdd('id as "cursor"');
 
@@ -384,19 +380,24 @@ class Profile extends Memcached_DataObject
         return $tags;
     }
 
-    function getOtherTags($offset=0, $limit=null, $since_id=0, $max_id=0)
+    function getOtherTags($auth_user=null, $offset=0, $limit=null, $since_id=0, $max_id=0)
     {
         $lists = new Profile_list();
+
         $tags = new Profile_tag();
-        $cursor_field = '';
+        $tags->tagged = $this->id;
 
         $lists->joinAdd($tags);
         #@fixme: postgres (round(date_part('epoch', my_date)))
         $lists->selectAdd('unix_timestamp(profile_tag.modified) as "cursor"');
 
-        $lists->whereAdd('profile_tag.tagged = '.$this->id);
-        # don't want self tags.
-        $lists->whereAdd('profile_tag.tagger != '.$this->id);
+        if ($auth_user instanceof User || $auth_user instanceof Profile) {
+            $lists->whereAdd('( ( profile_list.private = false ) ' .
+                             'OR ( profile_list.tagger = ' . $auth_user->id . ' AND ' .
+                             'profile_list.private = true ) )');
+        } else {
+            $lists->private = false;
+        }
 
         if ($since_id>0) {
            $lists->whereAdd('cursor > '.$since_id);
@@ -414,6 +415,30 @@ class Profile extends Memcached_DataObject
         $lists->find();
 
         return $lists;
+    }
+
+    function getPrivateTags($offset=0, $limit=null, $since_id=0, $max_id=0)
+    {
+        $tags = new Profile_list();
+        $tags->private = true;
+        $tags->tagger = $this->id;
+
+        if ($since_id>0) {
+           $tags->whereAdd('id > '.$since_id);
+        }
+
+        if ($max_id>0) {
+            $tags->whereAdd('id <= '.$max_id);
+        }
+
+        if($offset>=0 && !is_null($limit)) {
+            $tags->limit($offset, $limit);
+        }
+
+        $tags->orderBy('id DESC');
+        $tags->find();
+
+        return $tags;
     }
 
     function hasLocalTags()

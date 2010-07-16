@@ -75,7 +75,11 @@ class ShowprofiletagAction extends Action
         $this->tagger = $user->getProfile();
         $this->peopletag = Profile_list::pkeyGet(array('tagger' => $user->id, 'tag' => $tag));
 
-        if (!$this->peopletag) {
+        $current = common_current_user();
+        $can_see = !empty($this->peopletag) && (!$this->peopletag->private ||
+                   ($this->peopletag->private && $this->peopletag->tagger === $current->id));
+
+        if (!$can_see) {
             $this->clientError(_('No such peopletag.'), 404);
             return false;
         }
@@ -297,7 +301,8 @@ class Peopletag extends PeopletagListItem
 {
     function showStart()
     {
-        $this->out->elementStart('div', array('class' => 'hentry peopletag peopletag-profile',
+        $mode = $this->peopletag->private ? 'private' : 'public';
+        $this->out->elementStart('div', array('class' => 'hentry peopletag peopletag-profile mode-'.$mode,
                                              'id' => 'peopletag-' . $this->peopletag->id));
     }
 

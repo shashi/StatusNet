@@ -1387,7 +1387,8 @@ height:16px;
 position:relative;
 padding-left:16px;
 }
-.notice .attachment.more {
+.notice .attachment.more,
+.peopletag.mode-private .privacy_mode {
 text-indent:-9999px;
 width:16px;
 height:16px;

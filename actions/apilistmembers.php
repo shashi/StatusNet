@@ -60,7 +60,7 @@ class ApiListMembersAction extends ApiListUsersAction
         }
 
         $result = Profile_tag::setTag($this->auth_user->id,
-                        $new_member->id, $this->list->tag);
+                        $this->user->id, $this->list->tag);
 
         if(empty($result)) {
             $this->clientError(
@@ -157,6 +157,6 @@ class ApiListMembersAction extends ApiListUsersAction
     {
         $fn = array($this->list, 'getTagged');
         list($this->users, $this->next_cursor, $this->prev_cursor) =
-            Profile_list::getAtCursor($fn, $this->cursor, 20);
+            Profile_list::getAtCursor($fn, array(), $this->cursor, 20);
     }
 }

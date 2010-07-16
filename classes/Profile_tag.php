@@ -36,14 +36,18 @@ class Profile_tag extends Memcached_DataObject
         return Profile_list::pkeyGet(array('tagger' => $this->tagger, 'tag' => $this->tag));
     }
 
-    static function getTags($tagger, $tagged, $private=null) {
+    static function getTags($tagger, $tagged, $auth_user=null) {
 
         # XXX: store this in memcached
 
         $profile_list = new Profile_list();
-        if ($private !== null) {
-            // 0 or 1
-            $profile_list->private = (int) (bool) ($private);
+
+        if ($auth_user instanceof User || $auth_user instanceof Profile) {
+            $profile_list->whereAdd('( ( profile_list.private = false ) ' .
+                             'OR ( profile_list.tagger = ' . $auth_user->id . ' AND ' .
+                             'profile_list.private = true ) )');
+        } else {
+            $profile_list->private = false;
         }
 
         $profile_tag = new Profile_tag();
@@ -64,15 +68,34 @@ class Profile_tag extends Memcached_DataObject
         return $profile_list;
     }
 
+    static function getTagsArray($tagger, $tagged, $auth_user_id=null)
+    {
+        $ptag = new Profile_tag();
+        $ptag->tagger = $tagger;
+        $ptag->tagged = $tagged;
+
+        if ($tagger != $auth_user_id) {
+            $list = new Profile_list();
+            $list->private = false;
+            $ptag->joinAdd($list);
+            $ptag->selectAdd();
+            $ptag->selectAdd('profile_tag.tag');
+        }
+
+        $tags = array();
+        $ptag->find();
+        while ($ptag->fetch()) {
+            $tags[] = $ptag->tag;
+        }
+        $ptag->free();
+
+        return $tags;
+    }
+
     static function setTags($tagger, $tagged, $newtags, $privacy=array()) {
 
         $newtags = array_unique($newtags);
-        $oldtags = array();
-        $tags    = Profile_tag::getTags($tagger, $tagged);
-        while ($tags->fetch()) {
-            $oldtags[] = $tags->tag;
-        }
-        $tags->free();
+        $oldtags = self::getTagsArray($tagger, $tagged, $tagger);
 
         $ptag = new Profile_tag();
         $ptag->query('BEGIN');

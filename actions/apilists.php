@@ -103,9 +103,18 @@ class ApiListsAction extends ApiAuthAction
         // twitter creates a new list by appending a number to the end
         // if the list by the given name already exists
         // it makes more sense to return the existing list instead
+
+        $private = null;
+        if ($this->arg('mode') === 'public') {
+            $private = false;
+        } else if ($this->arg('mode') === 'private') {
+            $private = true;
+        }
+
         $list = Profile_list::ensureTag($this->auth_user->id,
                                         $this->arg('name'),
-                                        $this->arg('description'));
+                                        $this->arg('description'),
+                                        $private);
 
         switch($this->format) {
         case 'xml':
@@ -137,9 +146,10 @@ class ApiListsAction extends ApiAuthAction
         $count = 20;
         $profile = $this->user->getProfile();
         $fn = array($profile, 'getOwnedTags');
+
         list($this->lists,
              $this->next_cursor,
-             $this->prev_cursor) = Profile_list::getAtCursor($fn, $cursor, $count);
+             $this->prev_cursor) = Profile_list::getAtCursor($fn, array($this->auth_user), $cursor, $count);
     }
 
     function isReadOnly($args)

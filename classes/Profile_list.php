@@ -433,7 +433,7 @@ class Profile_list extends Memcached_DataObject
      * @returns array(array lists, int next_cursor, int previous_cursor)
      */
 
-    static function getAtCursor($fn, $cursor, $count=20)
+    static function getAtCursor($fn, $args, $cursor, $count=20)
     {
         $lists = array();
 
@@ -448,7 +448,8 @@ class Profile_list extends Memcached_DataObject
         } else if($cursor > 0) {
             // if cursor is +ve fetch $count+1 lists before cursor,
             $max_id = $cursor;
-            $list = call_user_func($fn, 0, $count+1, 0, $max_id);
+            $fn_args = array_merge($args, array(0, $count+1, 0, $max_id));
+            $list = call_user_func_array($fn, $fn_args);
             while($list->fetch()) {
                 $lists[] = clone($list);
             }
@@ -463,7 +464,8 @@ class Profile_list extends Memcached_DataObject
             }
 
             // and one list after cursor
-            $prev = call_user_func($fn, 0, 1, $cursor);
+            $fn_args = array_merge($args, array(0, 1, $cursor));
+            $prev = call_user_func_array($fn, $fn_args);
             while($prev->fetch()) {
                 if(isset($lists[0]->cursor)) {
                     $prev_cursor = -1*$lists[0]->cursor;
@@ -479,7 +481,8 @@ class Profile_list extends Memcached_DataObject
             // if cursor is -ve fetch $count+2 lists created after -cursor-1,
             $since_id = abs($cursor)-1;
 
-            $list = call_user_func($fn, 0, $count+2, $since_id);
+            $fn_args = array_merge($args, array(0, $count+2, $since_id));
+            $list = call_user_func_array($fn, $fn_args);
             while($list->fetch()) {
                 $lists[] = clone($list);
             }
@@ -507,7 +510,8 @@ class Profile_list extends Memcached_DataObject
             return array($lists, $next_cursor, $prev_cursor);
         }
         else if($cursor == -1) {
-            $list = call_user_func($fn, 0, $count+1);
+            $fn_args = array_merge($args, array(0, $count+1));
+            $list = call_user_func_array($fn, $fn_args);
 
             while($list->fetch()) {
                 $lists[] = clone($list);

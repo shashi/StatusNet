@@ -1536,6 +1536,7 @@ class ApiAction extends Action
     function getTargetList($user=null, $id=null)
     {
         $tagger = $this->getTargetUser($user);
+        $list = null;
 
         if (empty($id)) {
             $id = $this->arg('id');
@@ -1544,14 +1545,27 @@ class ApiAction extends Action
         if($id) {
             if (is_numeric($id)) {
                 $list = Profile_list::staticGet('id', $id);
+
                 // only if the list with the id belongs to the tagger
-                if($list->tagger == $tagger->id) {
-                    return $list;
+                if(empty($list) || $list->tagger == $tagger->id) {
+                    $list = null;
                 }
             }
             $tag = common_canonical_tag($id);
             $list = Profile_list::getByTaggerAndTag($tagger->id, $tag);
-            return $list;
+
+            if (empty($list)) {
+                return null;
+            }
+
+            if ($list->private) {
+                if ($this->auth_user->id == $list->tagger) {
+                    return $list;
+                }
+                return false;
+            } else {
+                return $list;
+            }
         }
         return null;
     }
