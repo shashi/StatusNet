@@ -190,24 +190,29 @@ class TagprofileAction extends Action
             return;
         }
 
+        $tags = array();
+        $tag_priv = array();
+
         if (is_string($tagstring) && strlen($tagstring) > 0) {
 
-            $tags = array_map('common_canonical_tag',
-                              preg_split('/[\s,]+/', $tagstring));
+            $tags = preg_split('/[\s,]+/', $tagstring);
 
-            foreach ($tags as $tag) {
+            foreach ($tags as &$tag) {
+                $private = @$tag[0] === '.';
+
+                $tag = common_canonical_tag($tag);
                 if (!common_valid_profile_tag($tag)) {
                     $this->showForm(sprintf(_('Invalid tag: "%s"'), $tag));
                     return;
                 }
+
+                $tag_priv[$tag] = $private;
             }
-        } else {
-            $tags = array();
         }
 
         $user = common_current_user();
 
-        $result = Profile_tag::setTags($user->id, $this->profile->id, $tags);
+        $result = Profile_tag::setTags($user->id, $this->profile->id, $tags, $tag_priv);
 
         if (!$result) {
             $this->clientError(_('Could not save tags.'));

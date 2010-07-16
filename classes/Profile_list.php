@@ -310,7 +310,7 @@ class Profile_list extends Memcached_DataObject
     }
 
     /* create the tag if it does not exist, return it */
-    static function ensureTag($tagger, $tag, $description=null)
+    static function ensureTag($tagger, $tag, $description=null, $private=false)
     {
         $ptag = Profile_list::getByTaggerAndTag($tagger, $tag);
 
@@ -318,7 +318,8 @@ class Profile_list extends Memcached_DataObject
             $args = array(
                 'tag' => $tag,
                 'tagger' => $tagger,
-                'description' => $description
+                'description' => $description,
+                'private' => $private
             );
 
             $new_tag = Profile_list::saveNew($args);
@@ -352,6 +353,18 @@ class Profile_list extends Memcached_DataObject
 
         $ptag->query('BEGIN');
 
+        if (empty($tagger)) {
+            throw new Exception(_('No tagger specified.'));
+        }
+
+        if (empty($tagger)) {
+            throw new Exception(_('No tag specified.'));
+        }
+
+        if (empty($mainpage)) {
+            $mainpage = null;
+        }
+
         if (empty($uri)) {
             // fill in later...
             $uri = null;
@@ -361,9 +374,18 @@ class Profile_list extends Memcached_DataObject
             $mainpage = null;
         }
 
+        if (empty($description)) {
+            $description = null;
+        }
+
+        if (empty($private)) {
+            $private = false;
+        }
+
         $ptag->tagger      = $tagger;
         $ptag->tag         = $tag;
         $ptag->description = $description;
+        $ptag->private     = $private;
         $ptag->uri         = $uri;
         $ptag->mainpage    = $mainpage;
         $ptag->created     = common_sql_now();

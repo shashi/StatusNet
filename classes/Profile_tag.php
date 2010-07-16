@@ -64,7 +64,7 @@ class Profile_tag extends Memcached_DataObject
         return $profile_list;
     }
 
-    static function setTags($tagger, $tagged, $newtags) {
+    static function setTags($tagger, $tagged, $newtags, $privacy=array()) {
 
         $newtags = array_unique($newtags);
         $oldtags = array();
@@ -90,13 +90,14 @@ class Profile_tag extends Memcached_DataObject
         }
 
         foreach ($to_insert as $instag) {
-            self::setTag($tagger, $tagged, $instag);
+            $private = isset($privacy[$instag]) ? $privacy[$instag] : false;
+            self::setTag($tagger, $tagged, $instag, null, $private);
         }
         return $ptag->query('COMMIT');
     }
 
     # set a single tag
-    static function setTag($tagger, $tagged, $tag) {
+    static function setTag($tagger, $tagged, $tag, $desc=null, $private=false) {
 
         $ptag = Profile_tag::pkeyGet(array('tagger' => $tagger,
                                            'tagged' => $tagged,
@@ -108,7 +109,7 @@ class Profile_tag extends Memcached_DataObject
         }
 
         if (Event::handle('StartTagProfile', array($tagger, $tag))) {
-            $profile_list = Profile_list::ensureTag($tagger, $tag);
+            $profile_list = Profile_list::ensureTag($tagger, $tag, $desc, $private);
 
             $newtag = new Profile_tag();
 
