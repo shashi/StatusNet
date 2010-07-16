@@ -27,19 +27,19 @@ class Profile_tag_subscription extends Memcached_DataObject
         return Memcached_DataObject::pkeyGet('Profile_tag_subscription', $kv);
     }
 
-    static function add($profile_tag_id, $profile_id)
+    static function add($peopletag, $profile)
     {
-        if (Event::handle('StartSubscribePeopletag', array($this->peopletag, $cur))) {
-            $args = array('profile_tag_id' => $profile_tag_id,
-                          'profile_id' => $profile_id);
+        if (Event::handle('StartSubscribePeopletag', array($peopletag, $profile))) {
+            $args = array('profile_tag_id' => $peopletag->id,
+                          'profile_id' => $profile->id);
             $existing = Profile_tag_subscription::pkeyGet($args);
             if(!empty($existing)) {
                 return $existing;
             }
 
             $sub = new Profile_tag_subscription();
-            $sub->profile_tag_id = $profile_tag_id;
-            $sub->profile_id = $profile_id;
+            $sub->profile_tag_id = $peopletag->id;
+            $sub->profile_id = $profile->id;
             $sub->created = common_sql_now();
 
             $result = $sub->insert();
@@ -49,24 +49,25 @@ class Profile_tag_subscription extends Memcached_DataObject
                 throw new Exception(_("Adding people tag subscription failed."));
             }
 
-            $ptag = Profile_list::staticGet('id', $profile_tag_id);
+            $ptag = Profile_list::staticGet('id', $peopletag->id);
             $ptag->subscriberCount(true);
 
-            Event::handle('EndSubscribePeopletag', array($this->peopletag, $cur));
+            Event::handle('EndSubscribePeopletag', array($peopletag, $profile));
             return $ptag;
         }
     }
 
-    static function remove($tag, $profile)
+    static function remove($peopletag, $profile)
     {
-        if (Event::handle('StartUnsubscribePeopletag', array($tag, $profile))) {
-            $sub = Profile_tag_subscription::pkeyGet(array('profile_tag_id' => $tag->id,
-                                                  'profile_id' => $profile));
+        $sub = Profile_tag_subscription::pkeyGet(array('profile_tag_id' => $peopletag->id,
+                                              'profile_id' => $profile->id));
 
-            if (empty($sub)) {
-                throw new Exception(_("Not subcribed to people tag."));
-            }
+        if (empty($sub)) {
+            // silence is golden?
+            return true;
+        }
 
+        if (Event::handle('StartUnsubscribePeopletag', array($peopletag, $profile))) {
             $result = $sub->delete();
 
             if (!$result) {
@@ -74,10 +75,9 @@ class Profile_tag_subscription extends Memcached_DataObject
                 throw new Exception(_("Removing people tag subscription failed."));
             }
 
-            $ptag = Profile_list::staticGet('id', $tag);
-            $ptag->subscriberCount(true);
+            $peopletag->subscriberCount(true);
 
-            Event::handle('EndUnsubscribePeopletag', array($tag, $profile));
+            Event::handle('EndUnsubscribePeopletag', array($peopletag, $profile));
             return true;
         }
     }

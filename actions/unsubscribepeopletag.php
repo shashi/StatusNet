@@ -113,13 +113,7 @@ class UnsubscribepeopletagAction extends Action
 
         $cur = common_current_user();
 
-        try {
-                Profile_tag_subscription::remove($this->peopletag, $cur);
-            }
-        } catch (Exception $e) {
-            $this->serverError(sprintf(_('Could not unsubscriber user %1$s from peopletag %2$s.'),
-                                       $cur->nickname, $this->peopletag->tag));
-        }
+        Profile_tag_subscription::remove($this->peopletag, $cur);
 
         if ($this->boolean('ajax')) {
             $this->startHTML('text/xml;charset=utf-8');

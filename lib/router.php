@@ -268,8 +268,8 @@ class Router
                         array('action' => 'tag'),
                         array('tag' => '[\pL\pN_\-\.]{1,64}'));
 
-            $m->connect('peopletag/:tag',
-                        array('action' => 'peopletag'),
+            $m->connect('selftag/:tag',
+                        array('action' => 'selftag'),
                         array('tag' => '[a-zA-Z0-9]+'));
 
             // groups
@@ -864,6 +864,11 @@ class Router
                 }
 
                 // people tags
+
+                $m->connect('peopletags', array('action' => 'publicpeopletagcloud'));
+
+                $m->connect('peopletag/:tag', array('action' => 'peopletag',
+                                                    'tag'    => '[A-Za-z0-9]{1,64}'));
 
                 $m->connect('main/addpeopletag', array('action' => 'addpeopletag'));
 

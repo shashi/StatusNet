@@ -961,7 +961,8 @@ font-weight: bold;
 text-decoration: none;
 }
 .peopletag .tag:before {
-content: '»';
+/* raquo */
+content: "\00BB";
 }
 .peopletag .entity_statistics {
 font-size:80%;

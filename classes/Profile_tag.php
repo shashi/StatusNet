@@ -179,7 +179,7 @@ class Profile_tag extends Memcached_DataObject
         $ptag->tag = $profile_list->tag;
         $ptag->find();
 
-        while($tag->fetch()) {
+        while($ptag->fetch()) {
             if (Event::handle('StartUntagProfile', array($ptag))) {
                 $orig = clone($ptag);
                 $result = $ptag->delete();

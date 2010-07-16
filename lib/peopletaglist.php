@@ -53,13 +53,15 @@ class PeopletagList extends Widget
     /** current user **/
     var $user = null;
 
-    function __construct($peopletag, $owner=null, $action=null)
+    function __construct($peopletag, $action=null)
     {
         parent::__construct($action);
 
         $this->peopletag = $peopletag;
 
-        if (common_logged_in()) {
+        if (!empty($owner)) {
+            $this->user = $owner;
+        } else {
             $this->user = common_current_user();
         }
     }

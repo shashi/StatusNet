@@ -185,7 +185,7 @@ class SelftagsWidget extends PeopletagsWidget
     function url($tag)
     {
         // link to self tag page
-        return common_local_url('peopletag', array('tag' => $tag));
+        return common_local_url('selftag', array('tag' => $tag));
     }
 
     function label()

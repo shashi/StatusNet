@@ -123,7 +123,7 @@ class PeopletagsubscriptionsAction extends OwnerDesignAction
 
         $ptags = $this->profile->getTagSubscriptions($offset, $limit);
 
-        $pl = new PeopletagList($ptags, $this->profile, $this);
+        $pl = new PeopletagList($ptags, $this);
         $cnt = $pl->show();
 
         $this->pagination($this->page > 1, $cnt > PEOPLETAGS_PER_PAGE,

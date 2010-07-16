@@ -136,7 +136,7 @@ class PeopletagsbyuserAction extends OwnerDesignAction
 
         $ptags = $this->tagger->getOwnedTags($offset, $limit);
 
-        $pl = new PeopletagList($ptags, $this->user, $this);
+        $pl = new PeopletagList($ptags, $this);
         $cnt = $pl->show();
 
         $this->pagination($this->page > 1, $cnt > PEOPLETAGS_PER_PAGE,
