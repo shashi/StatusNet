@@ -1046,11 +1046,6 @@ class Notice extends Memcached_DataObject
         if($ptag->find()) {
             while($ptag->fetch()) {
 
-                # skip self-tags
-                if($ptag->tagger == $this->profile_id) {
-                    continue;
-                }
-
                 $plist = Profile_list::pkeyGet(array('tagger' => $ptag->tagger,
                             'tag'=> $ptag->tag));
 
@@ -1071,16 +1066,18 @@ class Notice extends Memcached_DataObject
 
             $ptagi = new Profile_tag_inbox();
 
+            $ptagi->query('BEGIN');
             $ptagi->profile_tag_id  = $plist->id;
             $ptagi->notice_id = $this->id;
             $ptagi->created   = $this->created;
 
             $result = $ptagi->insert();
-
             if (!$result) {
                 common_log_db_error($ptagi, 'INSERT', __FILE__);
                 throw new ServerException(_('Problem saving profile_tag inbox.'));
             }
+
+            $ptagi->query('COMMIT');
 
             self::blow('profile_tag:notice_ids:%d', $ptagi->profile_tag_id);
         }
