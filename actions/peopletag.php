@@ -110,7 +110,17 @@ class PeopletagAction extends Action
 
         $ptags = new Profile_list();
         $ptags->tag = $this->tag;
-        $ptags->private = false;
+
+        $user = common_current_user();
+        if (!empty($user)) {
+            $ptags->whereAdd('(profile_list.private = false OR (' .
+                             ' profile_list.tagger =' . $user->id .
+                             ' AND profile_list.private = true) )');
+        } else {
+            $ptags->private = false;
+        }
+
+        $ptags->orderBy('profile_list.modified DESC');
         $ptags->find();
 
         $pl = new PeopletagList($ptags, $this);

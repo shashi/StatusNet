@@ -1510,15 +1510,21 @@ padding-left:7px;
 border-left-width:1px;
 border-left-style:solid;
 }
-#filter_tags #filter_tags_all {
+#filter_tags #filter_tags_all,
+#filter_tags #filter_tags_for {
 margin-left:0;
 border-left:0;
 padding-left:0;
 }
-#filter_tags_all a {
+#filter_tags_all a,
+#filter_tags_for a  {
+text-decoration:none;
 font-weight:bold;
 margin-top:7px;
 float:left;
+}
+#filter_tags_for a {
+margin:0;
 }
 
 #filter_tags_item label {
@@ -1537,6 +1543,15 @@ margin-left:38px;
 position:relative;
 top:3px;
 left:3px;
+}
+#filter_tags #form_filter_bymode .form_guide {
+display:none;
+}
+#filter_tags #form_filter_bymode .checkbox {
+float:none;
+}
+#filter_tags #form_filter_bymode legend {
+display:none;
 }
 
 .pagination {

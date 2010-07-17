@@ -29,6 +29,10 @@ class Profile_tag_subscription extends Memcached_DataObject
 
     static function add($peopletag, $profile)
     {
+        if ($peopletag->private) {
+            return false;
+        }
+
         if (Event::handle('StartSubscribePeopletag', array($peopletag, $profile))) {
             $args = array('profile_tag_id' => $peopletag->id,
                           'profile_id' => $profile->id);
