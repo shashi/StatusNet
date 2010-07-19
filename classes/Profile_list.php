@@ -357,7 +357,7 @@ class Profile_list extends Memcached_DataObject
             throw new Exception(_('No tagger specified.'));
         }
 
-        if (empty($tagger)) {
+        if (empty($tag)) {
             throw new Exception(_('No tag specified.'));
         }
 
@@ -413,7 +413,10 @@ class Profile_list extends Memcached_DataObject
             $user = User::staticGet('id', $ptag->tagger);
             if(!empty($user)) {
                 $ptag->mainpage = common_local_url('showprofiletag', array('tag' => $ptag->tag, 'tagger' => $user->nickname));
+            } else {
+                $ptag->mainpage = $uri; // assume this is a remote peopletag and the uri works
             }
+
             $result = $ptag->update($orig);
             if (!$result) {
                 common_log_db_error($ptag, 'UPDATE', __FILE__);
