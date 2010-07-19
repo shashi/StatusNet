@@ -1109,7 +1109,7 @@ width:14.5%;
 .notice,
 .profile,
 .application,
-.peopletag {
+#content .peopletag {
 position:relative;
 padding-top:11px;
 padding-bottom:11px;

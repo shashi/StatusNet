@@ -34,7 +34,6 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
 
 require_once INSTALLDIR.'/lib/widget.php';
 
-define('MINI_PROFILES_PER_TAG', 7);
 define('PEOPLETAGS_PER_PAGE', 20);
 
 /**
@@ -125,12 +124,7 @@ class PeopletagListItem extends Widget
 
     function url()
     {
-        if(!empty($this->peopletag->mainpage)) {
-            return $this->peopletag->mainpage;
-        }
-        return common_local_url('showprofiletag',
-                array('tagger' => $this->profile->nickname,
-                      'tag' => $this->peopletag->tag));
+        return $this->peopletag->homeUrl();
     }
 
     function show()

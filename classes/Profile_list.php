@@ -33,6 +33,12 @@ class Profile_list extends Memcached_DataObject
     /* the code above is auto generated do not remove the tag below */
     ###END_AUTOCODE
 
+
+    function getTagger()
+    {
+        return Profile::staticGet('id', $this->tagger);
+    }
+
     function getBestName()
     {
         return $this->tag;
