@@ -115,11 +115,21 @@ class SelftagAction extends Action
 
         $qry =  'SELECT profile.* ' .
                 'FROM profile JOIN ( profile_tag, profile_list ) ' .
-                'ON profile.id = profile_tag.tagger = profile_list.tagger ' .
+                'ON profile.id = profile_tag.tagger ' .
+                'AND profile_tag.tagger = profile_list.tagger ' .
                 'AND profile_list.tag = profile_tag.tag ' .
                 'WHERE profile_tag.tagger = profile_tag.tagged ' .
-                "AND profile_tag.tag = '%s' AND profile_list.private = false " .
-                'ORDER BY profile_tag.modified DESC%s';
+                "AND profile_tag.tag = '%s' ";
+
+        $user = common_current_user();
+        if (empty($user)) {
+            $qry .= 'AND profile_list.private = false ';
+        } else {
+            $qry .= 'AND (profile_list.tagger = ' . $user->id .
+                    ' OR profile_list.private = false) ';
+        }
+
+        $qry .= 'ORDER BY profile_tag.modified DESC%s';
 
         $profile->query(sprintf($qry, $this->tag, $lim));
 
@@ -177,5 +187,16 @@ class SelfTagProfileListItem extends ProfileListItem
 
         return $aAttrs;
     }
-}
 
+    function showTags()
+    {
+        $selftags = new SelfTagsWidget($this->out, $this->profile, $this->profile);
+        $selftags->show();
+
+        $user = common_current_user();
+        if (!empty($user) && $user->id != $this->profile->id) {
+            $yourtags = new PeopleTagsWidget($this->out, $user, $this->profile);
+            $yourtags->show();
+        }
+    }
+}
