@@ -49,7 +49,7 @@ class OStatusInitAction extends Action
         $this->tagger = $this->trimmed('tagger');
         $this->peopletag = $this->trimmed('peopletag');
         $this->group = $this->trimmed('group');
-        
+
         // Webfinger or profile URL of the remote user
         $this->profile = $this->trimmed('profile');
 

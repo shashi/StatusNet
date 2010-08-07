@@ -267,6 +267,19 @@ class Profile_list extends Memcached_DataObject
         return $result;
     }
 
+    function asAtomAuthor()
+    {
+        $xs = new XMLStringer(true);
+
+        $tagger = $this->getTagger();
+        $xs->elementStart('author');
+        $xs->element('name', null, '@' . $tagger->nickname . '/' . $this->tag);
+        $xs->element('uri', null, $this->permalink());
+        $xs->elementEnd('author');
+
+        return $xs->getString();
+    }
+
     function asActivitySubject()
     {
         return $this->asActivityNoun('subject');
