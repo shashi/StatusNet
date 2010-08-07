@@ -17,7 +17,7 @@ create table profile_list (
     subscriber_count smallint not null default 0 comment 'number of people subscribing',
 
     constraint primary key (tagger, tag),
-    index profile_tag_tag_idx (tag)
+    index profile_list_tag_idx (tag),
 ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_bin;
 
 /* populate metadata use tag itself as the

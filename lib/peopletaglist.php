@@ -194,25 +194,29 @@ class PeopletagListItem extends Widget
         $this->out->element('a', array('href' =>
                     common_local_url('editpeopletag', array('tagger' => $this->profile->nickname,
                                                     'tag' => $this->peopletag->tag)),
-                                  'title' => _('Edit profile settings')),
+                                  'title' => _('Edit peopletag settings')),
                        _('Edit'));
         $this->out->elementEnd('li');
     }
 
     function showSubscribeForm()
     {
-        if ($this->current) {
-            $this->out->elementStart('li');
+        $this->out->elementStart('li');
 
-            if ($this->peopletag->hasSubscriber($this->current->id)) {
-                $form = new UnsubscribePeopletagForm($this->out, $this->peopletag);
-                $form->show();
-            } else {
-                $form = new SubscribePeopletagForm($this->out, $this->peopletag);
-                $form->show();
+        if (Event::handle('StartSubscribePeopletagForm', array($this->out, $this->peopletag))) {
+            if ($this->current) {
+                if ($this->peopletag->hasSubscriber($this->current->id)) {
+                    $form = new UnsubscribePeopletagForm($this->out, $this->peopletag);
+                    $form->show();
+                } else {
+                    $form = new SubscribePeopletagForm($this->out, $this->peopletag);
+                    $form->show();
+                }
             }
-            $this->out->elementEnd('li');
+            Event::handle('EndSubscribePeopletagForm', array($this->out, $this->peopletag));
         }
+
+        $this->out->elementEnd('li');
     }
 
     function showCreator()

@@ -53,9 +53,9 @@ class OStatusPlugin extends Plugin
                   array('action' => 'ostatusinit'), array('nickname' => '[A-Za-z0-9_-]+'));
         $m->connect('main/ostatus?group=:group',
                   array('action' => 'ostatusinit'), array('group' => '[A-Za-z0-9_-]+'));
-        $m->connect('main/ostatus?nickname=:user&peopletag=:tag',
-                  array('action' => 'ostatusinit'), array('user' => '[A-Za-z0-9_-]+',
-                                                          'tag' => '[A-Za-z0-9_-]+'));
+        $m->connect('main/ostatus?peopletag=:peopletag&tagger=:tagger',
+                  array('action' => 'ostatusinit'), array('tagger' => '[A-Za-z0-9_-]+',
+                                                          'peopletag' => '[A-Za-z0-9_-]+'));
 
         // Remote subscription actions
         $m->connect('main/ostatussub',
@@ -250,6 +250,25 @@ class OStatusPlugin extends Plugin
         return true;
     }
 
+    function onStartSubscribePeopletagForm($output, $peopletag)
+    {
+        $cur = common_current_user();
+
+        if (empty($cur)) {
+            $output->elementStart('li', 'entity_subscribe');
+            $profile = $peopletag->getTagger();
+            $url = common_local_url('ostatusinit',
+                                    array('tagger' => $profile->nickname, 'peopletag' => $peopletag->tag));
+            $output->element('a', array('href' => $url,
+                                        'class' => 'entity_remote_subscribe'),
+                                _m('Subscribe'));
+
+            $output->elementEnd('li');
+            return false;
+        }
+
+        return true;
+    }
     /**
      * Check if we've got remote replies to send via Salmon.
      *
