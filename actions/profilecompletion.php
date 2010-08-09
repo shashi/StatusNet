@@ -59,6 +59,7 @@ class ProfilecompletionAction extends Action
     var $user;
     var $peopletag;
     var $field;
+    var $msg;
 
     /**
      * Check pre-requisites and instantiate attributes
@@ -121,16 +122,74 @@ class ProfilecompletionAction extends Action
 
     function handle($args)
     {
-        $msg = null;
+        $this->msg = null;
+
+        $this->startHTML('text/xml;charset=utf-8');
+        $this->elementStart('head');
+        $this->element('title', null, _('Search results'));
+        $this->elementEnd('head');
+        $this->elementStart('body');
+        $profiles = $this->getResults();
+
+        if ($this->msg !== null) {
+            $this->element('p', 'error', $this->msg);
+        } else {
+            if (count($profiles) > 0) {
+                $this->elementStart('ul', array('id' => 'profile_search_results', 'class' => 'profile-lister'));
+                foreach ($profiles as $profile) {
+                    $this->showProfileItem($profile);
+                }
+                $this->elementEnd('ul');
+            } else {
+                $this->element('p', 'error', _('No results.'));
+            }
+            $profile->free();
+        }
+        $this->elementEnd('body');
+        $this->elementEnd('html');
+    }
+
+    function getResults()
+    {
+        $profiles = array();
         $q = $this->arg('q');
         $q = strtolower($q);
         if (strlen($q) < 3) {
-            $msg = _('The search string must be atleast 3 characters long');
+            $this->msg = _('The search string must be atleast 3 characters long');
         }
         $page = $this->arg('page');
         $page = (int) (empty($page) ? 1 : $page);
 
         $profile = new Profile();
+
+        if ($this->field == 'uri') {
+            $user = new User();
+            $profile->joinAdd($user);
+            $profile->whereAdd('uri LIKE "%' . $profile->escape($q) . '%"');
+            $profile->query();
+
+            if ($profile->N == 0) {
+                try {
+                    if (Validate::email($q)) {
+                        $oprofile = Ostatus_profile::ensureWebfinger($q);
+                    } else if (Validate::uri($q)) {
+                        $oprofile = Ostatus_profile::ensureProfileURL($q);
+                    } else {
+                        throw new Exception('Invalid URI');
+                    }
+                    return array($oprofile->localProfile());
+
+                } catch (Exception $e) {
+                    $err = _m("Sorry, we could not reach that address. Please make sure that the OStatus address is like nickname@example.com or http://example.net/nickname");
+                }
+            }
+
+            while ($profile->fetch()) {
+                $profiles[] = clone($profile);
+            }
+            return $profiles;
+        }
+
         $search_engine = $profile->getSearchEngine('profile');
         $search_engine->set_sort_mode('chron');
         $search_engine->limit((($page-1)*PROFILES_PER_PAGE), PROFILES_PER_PAGE + 1);
@@ -141,43 +200,28 @@ class ProfilecompletionAction extends Action
             $cnt = $profile->find();
         }
 
-        $profiles = array();
-        // TODO: Filter out fields. Perform special searches.
-
-        $this->startHTML('text/xml;charset=utf-8');
-        $this->elementStart('head');
-        $this->element('title', null, _('Search results'));
-        $this->elementEnd('head');
-        $this->elementStart('body');
-        if ($msg !== null) {
-            $this->element('p', 'error', $msg);
-        } else {
-            if ($cnt > 0) {
-                $this->elementStart('ul', array('id' => 'profile_search_results', 'class' => 'profile-lister'));
-                while ($profile->fetch()) {
-                    $this->elementStart('li', 'entity_removable_profile');
-                    $item = new TaggedProfileItem($this, $profile);
-                    $item->show();
-                    $this->elementStart('span', 'entity_actions');
-
-                    if ($profile->isTagged($this->peopletag)) {
-                        $untag = new UntagButton($this, $profile, $this->peopletag);
-                        $untag->show();
-                    } else {
-                        $tag = new TagButton($this, $profile, $this->peopletag);
-                        $tag->show();
-                    }
-
-                    $this->elementEnd('span');
-                    $this->elementEnd('li');
-                }
-                $this->elementEnd('ul');
-            } else {
-                $this->element('p', 'error', _('No results.'));
-            }
-            $profile->free();
+        while ($profile->fetch()) {
+            $profiles[] = clone($profile);
         }
-        $this->elementEnd('body');
-        $this->elementEnd('html');
+        return $profiles;
+    }
+
+    function showProfileItem($profile)
+    {
+        $this->elementStart('li', 'entity_removable_profile');
+        $item = new TaggedProfileItem($this, $profile);
+        $item->show();
+        $this->elementStart('span', 'entity_actions');
+
+        if ($profile->isTagged($this->peopletag)) {
+            $untag = new UntagButton($this, $profile, $this->peopletag);
+            $untag->show();
+        } else {
+            $tag = new TagButton($this, $profile, $this->peopletag);
+            $tag->show();
+        }
+
+        $this->elementEnd('span');
+        $this->elementEnd('li');
     }
 }
