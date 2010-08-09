@@ -272,6 +272,62 @@ class OStatusPlugin extends Plugin
 
         return true;
     }
+
+    function onStartShowTagProfileForm($action, $profile)
+    {
+        $action->elementStart('form', array('method' => 'post',
+                                           'id' => 'form_tag_user',
+                                           'class' => 'form_settings',
+                                           'name' => 'tagprofile',
+                                           'action' => common_local_url('tagprofile', array('id' => $action->profile->id))));
+
+        $action->elementStart('fieldset');
+        $action->element('legend', null, _('Tag remote profile'));
+        $action->hidden('token', common_session_token());
+
+        $user = common_current_user();
+
+        $action->elementStart('ul', 'form_data');
+        $action->elementStart('li');
+
+        $action->input('uri', _('Remote profile'), $action->trimmed('uri'),
+                     _('OStatus user\'s address, like nickname@example.com or http://example.net/nickname'));
+        $action->elementEnd('li');
+        $action->elementEnd('ul');
+        $action->submit('fetch', _('Fetch'));
+        $action->elementEnd('fieldset');
+        $action->elementEnd('form');
+    }
+
+    function onStartSavePeopletags($action, $profile)
+    {
+        $err = null;
+        $uri = $action->trimmed('uri');
+
+        if (!$profile && $uri) {
+            try {
+                if (Validate::email($uri)) {
+                    $oprofile = Ostatus_profile::ensureWebfinger($uri);
+                } else if (Validate::uri($uri)) {
+                    $oprofile = Ostatus_profile::ensureProfileURL($uri);
+                } else {
+                    throw new Exception('Invalid URI');
+                }
+
+                // redirect to the new profile.
+                common_redirect(common_local_url('tagprofile', array('id' => $oprofile->profile_id)), 303);
+                return false;
+
+            } catch (Exception $e) {
+                $err = _m("Sorry, we could not reach that address. Please make sure that the OStatus address is like nickname@example.com or http://example.net/nickname");
+            }
+
+            $action->showForm($err);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Check if we've got remote replies to send via Salmon.
      *
@@ -873,25 +929,26 @@ class OStatusPlugin extends Plugin
             return true;
         }
 
+        $plist = $ptag->getMeta();
         $act = new Activity();
 
-        $tagger = Profile::staticGet('id', $ptag->tagger);
+        $tagger = $plist->getTagger();
         $tagged = Profile::staticGet('id', $ptag->tagged);
 
         $act->verb = ActivityVerb::TAG;
         $act->id   = TagURI::mint('tag_profile:%d:%d:%s',
-                                  $ptag->tagger, $ptag->id,
+                                  $plist->tagger, $plist->id,
                                   common_date_iso8601(time()));
         $act->time = time();
         $act->title = _("Tag");
         $act->content = sprintf(_("%s tagged %s in the list %s"),
                                 $tagger->getBestName(),
                                 $tagged->getBestName(),
-                                $ptag->getBestName());
+                                $plist->getBestName());
 
         $act->actor  = ActivityObject::fromProfile($tagger);
         $act->object = ActivityObject::fromProfile($tagged);
-        $act->target = ActivityObject::fromPeopletag($ptag);
+        $act->target = ActivityObject::fromPeopletag($plist);
 
         $oprofile->notifyActivity($act, $tagger);
 
@@ -907,25 +964,26 @@ class OStatusPlugin extends Plugin
             return true;
         }
 
+        $plist = $ptag->getMeta();
         $act = new Activity();
 
-        $tagger = Profile::staticGet('id', $ptag->tagger);
+        $tagger = $plist->getTagger();
         $tagged = Profile::staticGet('id', $ptag->tagged);
 
         $act->verb = ActivityVerb::UNTAG;
         $act->id   = TagURI::mint('untag_profile:%d:%d:%s',
-                                  $ptag->tagger, $ptag->id,
+                                  $plist->tagger, $plist->id,
                                   common_date_iso8601(time()));
         $act->time = time();
         $act->title = _("Untag");
         $act->content = sprintf(_("%s untagged %s from the list %s"),
                                 $tagger->getBestName(),
                                 $tagged->getBestName(),
-                                $ptag->getBestName());
+                                $plist->getBestName());
 
         $act->actor  = ActivityObject::fromProfile($tagger);
         $act->object = ActivityObject::fromProfile($tagged);
-        $act->target = ActivityObject::fromPeopletag($ptag);
+        $act->target = ActivityObject::fromPeopletag($plist);
 
         $oprofile->notifyActivity($act, $tagger);
 

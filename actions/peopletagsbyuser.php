@@ -108,7 +108,7 @@ class PeopletagsbyuserAction extends OwnerDesignAction
             $this->tags = $this->tagger->getOwnedTags(false, $offset, $limit);
         } else if ($this->arg('private')) {
             if (empty($user)) {
-                $this->clientError(_('Not logged in', 403));
+                $this->clientError(_('Not logged in'), 403);
             }
 
             if ($this->isOwner()) {

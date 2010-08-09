@@ -144,7 +144,9 @@ class Router
             $m->connect('main/sup/:seconds', array('action' => 'sup'),
                         array('seconds' => '[0-9]+'));
 
-            $m->connect('main/tagprofile/:id', array('action' => 'tagprofile'));
+            $m->connect('main/tagprofile', array('action' => 'tagprofile'));
+            $m->connect('main/tagprofile/:id', array('action' => 'tagprofile'),
+                                               array('id' => '[0-9]+'));
 
             $m->connect('main/oembed',
                         array('action' => 'oembed'));

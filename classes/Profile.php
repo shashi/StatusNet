@@ -442,18 +442,16 @@ class Profile extends Memcached_DataObject
 
     function hasLocalTags()
     {
-        $lists = new Profile_list();
         $tags = new Profile_tag();
 
-        $lists->joinAdd($tags);
-        $lists->joinAdd('tagger', 'user:id');
-        $lists->whereAdd('profile_tag.tagged = '.$this->id);
-        $lists->whereAdd('profile_tag.tagger != '.$this->id);
+        $tags->joinAdd(array('tagger', 'user:id'));
+        $tags->whereAdd('tagged  = '.$this->id);
+        $tags->whereAdd('tagger != '.$this->id);
 
-        $lists->limit(0, 1);
-        $lists->query();
+        $tags->limit(0, 1);
+        $tags->fetch();
 
-        return ($lists->N == 0) ? false : true;
+        return ($tags->N == 0) ? false : true;
     }
 
     function getTagSubscriptions($offset=0, $limit=null, $since_id=0, $max_id=0)
