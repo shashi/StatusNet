@@ -551,4 +551,92 @@ class Profile_list extends Memcached_DataObject
             return array($lists, $next_cursor, $prev_cursor);
         }
     }
+
+    static function setCache($ckey, &$tag, $offset=0, $limit=null) {
+        $cache = common_memcache();
+        if (empty($cache)) {
+            return false;
+        }
+        $str = '';
+        $tags = array();
+        while ($tag->fetch()) {
+            $str .= $tag->tagger . ':' . $tag->tag . ';';
+            $tags[] = clone($tag);
+        }
+        $str = substr($str, 0, -1);
+        if ($offset>=0 && !is_null($limit)) {
+            $tags = array_slice($tags, $offset, $limit);
+        }
+
+        $tag = new ArrayWrapper($tags);
+
+        return self::cacheSet($ckey, $str);
+    }
+
+    static function getCached($ckey, $offset=0, $limit=null) {
+
+        $keys_str = self::cacheGet($ckey);
+        if ($keys_str === false) {
+            return false;
+        }
+
+        $pairs = explode(';', $key_str);
+        $keys = array();
+        foreach ($pairs as $pair) {
+            $keys[] = explode(':', $pair);
+        }
+
+        if ($$offset>=0 && !is_null($limit)) {
+            $keys = array_slice($keys, $offset, $limit);
+        }
+        return self::getByKeys($keys, $tagger);
+    }
+
+    static function getByKeys($keys) {
+        $cache = common_memcache();
+
+        if (!empty($cache)) {
+            $tags = array();
+
+            foreach ($keys as $key) {
+                $t = Profile_list::getByTaggerAndTag($key[0], $key[1]);
+                if (!empty($t)) {
+                    $tags[] = $t;
+                }
+            }
+            return new ArrayWrapper($tags);
+        } else {
+            $tag = new Profile_list();
+            if (empty($keys)) {
+                //if no IDs requested, just return the tag object
+                return $tag;
+            }
+
+            $pairs = array();
+            foreach ($keys as $key) {
+                $pairs[] = '(' . $key[0] . ', "' . $key[1] . '")';
+            }
+
+            $tag->whereAdd('(tagger, tag) in (' . implode(', ', $pairs) . ')');
+
+            $tag->find();
+
+            $temp = array();
+
+            while ($tag->fetch()) {
+                $temp[$tag->tagger.'-'.$tag->tag] = clone($tag);
+            }
+
+            $wrapped = array();
+
+            foreach ($keys as $key) {
+                $id = $key[0].'-'.$key[1];
+                if (array_key_exists($id, $temp)) {
+                    $wrapped[] = $temp[$id];
+                }
+            }
+
+            return new ArrayWrapper($wrapped);
+        }
+    }
 }

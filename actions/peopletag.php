@@ -32,6 +32,8 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
 }
 
 require_once INSTALLDIR.'/lib/peopletaglist.php';
+// cache 3 pages
+define('PEOPLETAG_CACHE_WINDOW', PEOPLETAGS_PER_PAGE*3 + 1);
 
 class PeopletagAction extends Action
 {
@@ -103,8 +105,6 @@ class PeopletagAction extends Action
 
     function showContent()
     {
-        #TODO: controls here.
-
         $offset = ($this->page-1) * PEOPLETAGS_PER_PAGE;
         $limit  = PEOPLETAGS_PER_PAGE + 1;
 
@@ -112,16 +112,32 @@ class PeopletagAction extends Action
         $ptags->tag = $this->tag;
 
         $user = common_current_user();
-        if (!empty($user)) {
+
+        if (empty($user)) {
+            $ckey = sprintf('profile_list:tag:%s', $this->tag);
+            $ptags->private = false;
+            $ptags->orderBy('profile_list.modified DESC');
+
+            if ($offset+$limit <= PEOPLETAG_CACHE_WINDOW && !empty(common_memcache())) {
+                $ptags = Profile_list::getCached($ckey, $offset, $limit);
+                if ($ptags !== false) {
+                    $ptags->limit(0, PEOPLETAG_CACHE_WINDOW);
+                    $ptags->find();
+
+                    Profile_list::setCache($ckey, $ptags, $offset, $limit);
+                }
+            } else {
+                $ptags->limit($offset, $limit);
+                $ptags->find();
+            }
+        } else {
             $ptags->whereAdd('(profile_list.private = false OR (' .
                              ' profile_list.tagger =' . $user->id .
                              ' AND profile_list.private = true) )');
-        } else {
-            $ptags->private = false;
-        }
 
-        $ptags->orderBy('profile_list.modified DESC');
-        $ptags->find();
+            $ptags->orderBy('profile_list.modified DESC');
+            $ptags->find();
+        }
 
         $pl = new PeopletagList($ptags, $this);
         $cnt = $pl->show();

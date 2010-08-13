@@ -38,16 +38,21 @@ class Profile_tag extends Memcached_DataObject
 
     static function getTags($tagger, $tagged, $auth_user=null) {
 
-        # XXX: store this in memcached
-
         $profile_list = new Profile_list();
+        $include_priv = 1;
 
-        if ($auth_user instanceof User || $auth_user instanceof Profile) {
-            $profile_list->whereAdd('( ( profile_list.private = false ) ' .
-                             'OR ( profile_list.tagger = ' . $auth_user->id . ' AND ' .
-                             'profile_list.private = true ) )');
-        } else {
+        if (!($auth_user instanceof User ||
+            $auth_user instanceof Profile) ||
+            ($auth_user->id !== $tagger)) {
+
             $profile_list->private = false;
+            $include_priv = 0;
+        }
+
+        $key = sprintf('profile_tag:tagger_tagged_privacy:%d-%d-%d', $tagger, $tagged, $include_priv);
+        $tags = Profile_list::getCached($key);
+        if ($tags !== false) {
+            return $tags;
         }
 
         $profile_tag = new Profile_tag();
@@ -64,6 +69,8 @@ class Profile_tag extends Memcached_DataObject
                                  'profile_list.private');
         $profile_list->joinAdd($profile_tag);
         $profile_list->find();
+
+        Profile_list::setCache($key, $profile_list);
 
         return $profile_list;
     }
@@ -178,6 +185,7 @@ class Profile_tag extends Memcached_DataObject
                 return false;
             }
             $profile_list->taggedCount(true);
+            self::blowCaches($tagger, $tagged);
         }
 
         return $newtag;
@@ -202,6 +210,7 @@ class Profile_tag extends Memcached_DataObject
             if ($result) {
                 $profile_list = Profile_list::pkeyGet(array('tag' => $tag, 'tagger' => $tagger));
                 $profile_list->taggedCount(true);
+                self::blowCaches($tagger, $tagged);
                 return true;
             }
             return false;
@@ -255,6 +264,13 @@ class Profile_tag extends Memcached_DataObject
         if (!$result) {
             common_log_db_error($tags, 'UPDATE', __FILE__);
             return false;
+        }
+        return true;
+    }
+
+    static function blowCaches($tagger, $tagged) {
+        foreach (array(0, 1) as $perm) {
+            self::blow(sprintf('profile_tag:tagger_tagged_privacy:%d-%d-%d', $tagger, $tagged, $perm));
         }
         return true;
     }
