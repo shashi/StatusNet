@@ -369,8 +369,8 @@ var SN = { // StatusNet
                         var tags = document._importNode($('.entity_tags', data)[0], true);
                         $(tags).find('.editable').append($('<button class="peopletags_edit_button"/>'));
                         results_placeholder.replaceWith(tags);
-                    }
-                    else {
+                    } else {
+                        results_placeholder.find('p').remove();
                         results_placeholder.append(document._importNode($('p', data)[0], true));
                         form.removeClass(SN.C.S.Processing)
                             .find('.submit')

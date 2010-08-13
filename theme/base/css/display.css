@@ -700,6 +700,9 @@ margin-bottom:18px;
 margin-left:113px;
 margin-bottom:4px;
 }
+.entity_tags p.error {
+clear:both;
+}
 
 .peopletags_edit_button {
 border:0;

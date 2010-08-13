@@ -299,13 +299,6 @@ class Profile extends Memcached_DataObject
         }
     }
 
-    function isTagged($peopletag) {
-        $tag = Profile_tag::pkeyGet(array('tagger' => $peopletag->tagger,
-                                          'tagged' => $this->id,
-                                          'tag'    => $peopletag->tag));
-        return !empty($tag);
-    }
-
     function isAdmin($group)
     {
         $mem = new Group_member();
@@ -345,6 +338,48 @@ class Profile extends Memcached_DataObject
         $cnt = $groups->query(sprintf($qry, $this->id));
 
         return $groups;
+    }
+
+    function isTagged($peopletag)
+    {
+        $tag = Profile_tag::pkeyGet(array('tagger' => $peopletag->tagger,
+                                          'tagged' => $this->id,
+                                          'tag'    => $peopletag->tag));
+        return !empty($tag);
+    }
+
+    function canTag($tagged)
+    {
+        if (empty($tagged)) {
+            return false;
+        }
+
+        if ($tagged->id == $this->id) {
+            return true;
+        }
+
+        $all = common_config('peopletag', 'allow_tagging', 'all');
+        $local = common_config('peopletag', 'allow_tagging', 'local') || $all;
+        $remote = common_config('peopletag', 'allow_tagging', 'remote') || $all;
+        $subs = common_config('peopletag', 'allow_tagging', 'subs-only');
+
+        $tagged_user = $tagged->getUser();
+        if (!empty($tagged_user)) {
+            if ($local) {
+                return true;
+            }
+        }
+
+        if (!empty($tagged)) {
+            if ($subs) {
+                return (Subscription::exists($this, $tagged) ||
+                        Subscription::exists($tagged, $this));
+            }
+            if ($remote) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function getOwnedTags($auth_user, $offset=0, $limit=null, $since_id=0, $max_id=0)

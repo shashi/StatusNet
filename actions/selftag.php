@@ -194,7 +194,9 @@ class SelfTagProfileListItem extends ProfileListItem
         $selftags->show();
 
         $user = common_current_user();
-        if (!empty($user) && $user->id != $this->profile->id) {
+
+        if (!empty($user) && $user->id != $this->profile->id &&
+                $user->getProfile()->canTag($this->profile)) {
             $yourtags = new PeopleTagsWidget($this->out, $user, $this->profile);
             $yourtags->show();
         }

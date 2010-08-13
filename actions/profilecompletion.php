@@ -177,17 +177,18 @@ class ProfilecompletionAction extends Action
                     } else {
                         throw new Exception('Invalid URI');
                     }
-                    return array($oprofile->localProfile());
+                    return $this->filter(array($oprofile->localProfile()));
 
                 } catch (Exception $e) {
-                    $err = _m("Sorry, we could not reach that address. Please make sure that the OStatus address is like nickname@example.com or http://example.net/nickname");
+                    $this->msg = _m("Sorry, we could not reach that address. Please make sure that the OStatus address is like nickname@example.com or http://example.net/nickname");
+                    return array();
                 }
             }
 
             while ($profile->fetch()) {
                 $profiles[] = clone($profile);
             }
-            return $profiles;
+            return $this->filter($profiles);
         }
 
         $search_engine = $profile->getSearchEngine('profile');
@@ -203,7 +204,19 @@ class ProfilecompletionAction extends Action
         while ($profile->fetch()) {
             $profiles[] = clone($profile);
         }
-        return $profiles;
+        return $this->filter($profiles);
+    }
+
+    function filter($profiles)
+    {
+        $current = $this->user->getProfile();
+        $filtered_profiles = array();
+        foreach ($profiles as $profile) {
+            if ($current->canTag($profile)) {
+                $filtered_profiles[] = $profile;
+            }
+        }
+        return $filtered_profiles;
     }
 
     function showProfileItem($profile)

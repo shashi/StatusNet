@@ -47,6 +47,10 @@ class TagprofileAction extends Action
             }
         }
 
+        $current = common_current_user()->getProfile();
+        if ($this->profile && !$current->canTag($this->profile)) {
+            $this->clientError(_('You cannot tag this user.'));
+        }
         return true;
     }
 
@@ -212,11 +216,14 @@ class TagprofileAction extends Action
 
             $user = common_current_user();
 
-            $result = Profile_tag::setTags($user->id, $this->profile->id, $tags, $tag_priv);
-
-            if (!$result) {
-                $this->clientError(_('Could not save tags.'));
-                return;
+            try {
+                $result = Profile_tag::setTags($user->id, $this->profile->id, $tags, $tag_priv);
+                if (!$result) {
+                    throw new Exception('The tags could not be saved.');
+                }
+            } catch (Exception $e) {
+                $this->showForm($e->getMessage());
+                return false;
             }
 
             if ($this->boolean('ajax')) {

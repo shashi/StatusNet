@@ -132,7 +132,34 @@ class Profile_tag extends Memcached_DataObject
         }
 
         if (Event::handle('StartTagProfile', array($tagger, $tag))) {
+            $tagger_profile = Profile::staticGet('id', $tagger);
+            $tagged_profile = Profile::staticGet('id', $tagged);
+
+            if (!$tagger_profile->canTag($tagged_profile)) {
+                throw new ClientException(_('You cannot tag this user.'));
+                return false;
+            }
+
+            $tags = new Profile_list();
+            $tags->tagger = $tagger;
+            $count = (int) $tags->count('distinct tag');
+
+            if ($count >= common_config('peopletag', 'maxtags')) {
+                throw new ClientException(sprintf(_('You already have created %d or more tags ' .
+                                                    'which is the maximum allowed number of tags. ' .
+                                                    'Try using or deleting some existing tags.'),
+                                                    common_config('peopletag', 'maxtags')));
+                return false;
+            }
+
             $profile_list = Profile_list::ensureTag($tagger, $tag, $desc, $private);
+            if ($profile_list->taggedCount() >= common_config('peopletag', 'maxpeople')) {
+                throw new ClientException(sprintf(_('You already have %d or more people tagged %s ' .
+                                                    'which is the maximum allowed number.' .
+                                                    'Try untagging others with the same tag first.'),
+                                                    common_config('peopletag', 'maxpeople'), $tag));
+                return false;
+            }
 
             $newtag = new Profile_tag();
 

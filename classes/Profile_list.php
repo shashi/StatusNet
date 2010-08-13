@@ -350,7 +350,7 @@ class Profile_list extends Memcached_DataObject
 
     static function maxDescription()
     {
-        $desclimit = common_config('profiletag', 'desclimit');
+        $desclimit = common_config('peopletag', 'desclimit');
         // null => use global limit (distinct from 0!)
         if (is_null($desclimit)) {
             $desclimit = common_config('site', 'textlimit');
