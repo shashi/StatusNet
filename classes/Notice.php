@@ -487,7 +487,7 @@ class Notice extends Memcached_DataObject
     function saveKnownUrls($urls)
     {
         // @fixme validation?
-        foreach ($urls as $url) {
+        foreach (array_unique($urls) as $url) {
             File::processNew($url, $this->id);
         }
     }
@@ -941,7 +941,7 @@ class Notice extends Memcached_DataObject
         }
 
         $groups = array();
-        foreach ($group_ids as $id) {
+        foreach (array_unique($group_ids) as $id) {
             $group = User_group::staticGet('id', $id);
             if ($group) {
                 common_log(LOG_ERR, "Local delivery to group id $id, $group->nickname");
@@ -1122,7 +1122,7 @@ class Notice extends Memcached_DataObject
         }
         $sender = Profile::staticGet($this->profile_id);
 
-        foreach ($uris as $uri) {
+        foreach (array_unique($uris) as $uri) {
 
             $user = User::staticGet('uri', $uri);
 
@@ -1135,6 +1135,7 @@ class Notice extends Memcached_DataObject
 
                 $reply->notice_id  = $this->id;
                 $reply->profile_id = $user->id;
+                common_log(LOG_INFO, __METHOD__ . ": saving reply: notice $this->id to profile $user->id");
 
                 $id = $reply->insert();
             }
