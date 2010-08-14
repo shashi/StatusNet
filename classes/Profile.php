@@ -359,25 +359,24 @@ class Profile extends Memcached_DataObject
         }
 
         $all = common_config('peopletag', 'allow_tagging', 'all');
-        $local = common_config('peopletag', 'allow_tagging', 'local') || $all;
-        $remote = common_config('peopletag', 'allow_tagging', 'remote') || $all;
-        $subs = common_config('peopletag', 'allow_tagging', 'subs-only');
+        $local = common_config('peopletag', 'allow_tagging', 'local');
+        $remote = common_config('peopletag', 'allow_tagging', 'remote');
+        $subs = common_config('peopletag', 'allow_tagging', 'subs');
+
+        if ($all) {
+            return true;
+        }
 
         $tagged_user = $tagged->getUser();
         if (!empty($tagged_user)) {
             if ($local) {
                 return true;
             }
-        }
-
-        if (!empty($tagged)) {
-            if ($subs) {
-                return (Subscription::exists($this, $tagged) ||
-                        Subscription::exists($tagged, $this));
-            }
-            if ($remote) {
-                return true;
-            }
+        } else if ($subs) {
+            return (Subscription::exists($this, $tagged) ||
+                    Subscription::exists($tagged, $this));
+        } else if ($remote) {
+            return true;
         }
         return false;
     }

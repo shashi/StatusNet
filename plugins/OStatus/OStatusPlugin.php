@@ -288,7 +288,7 @@ class OStatusPlugin extends Plugin
                                            'id' => 'form_tag_user',
                                            'class' => 'form_settings',
                                            'name' => 'tagprofile',
-                                           'action' => common_local_url('tagprofile', array('id' => $action->profile->id))));
+                                           'action' => common_local_url('tagprofile', array('id' => @$profile->id))));
 
         $action->elementStart('fieldset');
         $action->element('legend', null, _('Tag remote profile'));

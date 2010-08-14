@@ -192,16 +192,18 @@ $config['sphinx']['port'] = 3312;
 // $config['peopletag']['allow_tagging']['all'] = true;
 // Local only.
 // $config['peopletag']['allow_tagging']['local'] = true;
-// Subscriptions / Subscribers only
-// $config['peopletag']['allow_tagging']['subs-only'] = true;
-// Remote. If 'subs-only' is true, remote subscriptions only.
+// Subscriptions / Subscribers only (including remote)
+// $config['peopletag']['allow_tagging']['subs'] = true;
+// Remote.
 // $config['peopletag']['allow_tagging']['remote'] = true;
 // Examples:
-// The following set of configuration allows tagging local users and
+// The following set of options allows tagging local users and
 // remote subscribers / subscription.
+// $config['peopletag']['allow_tagging']['all'] = false;
 // $config['peopletag']['allow_tagging']['local'] = true;
-// $config['peopletag']['allow_tagging']['subs-only'] = true;
-// $config['peopletag']['allow_tagging']['remote'] = true;
+// $config['peopletag']['allow_tagging']['subs'] = true;
+// Or:
+// $config['peopletag']['allow_tagging'] = array('local' => true, 'subs' =>true);
 
 // Disable post-by-email
 // $config['emailpost']['enabled'] = false;
