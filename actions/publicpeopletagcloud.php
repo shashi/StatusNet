@@ -66,7 +66,7 @@ class PublicpeopletagcloudAction extends Action
 
     function showEmptyList()
     {
-        $message = _('No one has [tagged](%%doc.peopletags%%) anyone yet.') . ' ';
+        $message = _('No one has [tagged](%%doc.tags%%) anyone yet.') . ' ';
 
         if (common_logged_in()) {
             $message .= _('Be the first to tag someone!');

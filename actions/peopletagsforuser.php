@@ -147,8 +147,19 @@ class PeopletagsforuserAction extends OwnerDesignAction
         $pl = new PeopletagList($ptags, $this);
         $cnt = $pl->show();
 
+        if ($cnt == 0) {
+            $this->showEmptyListMessage();
+        }
         $this->pagination($this->page > 1, $cnt > PEOPLETAGS_PER_PAGE,
                           $this->page, 'peopletagsforuser', array('nickname' => $this->tagged->id));
+    }
+
+    function showEmptyListMessage()
+    {
+        $message = sprintf(_('%s has not been [tagged](%%%%doc.tags%%%%) by anyone yet.'), $this->tagged->nickname);
+        $this->elementStart('div', 'guide');
+        $this->raw(common_markup_to_html($message));
+        $this->elementEnd('div');
     }
 
     function showSections()
