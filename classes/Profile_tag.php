@@ -228,21 +228,6 @@ class Profile_tag extends Memcached_DataObject
         }
     }
 
-    # Return profiles with a given tag
-    static function getTagged($tagger, $tag) {
-        $profile = new Profile();
-        $profile->query('SELECT profile.* ' .
-                        'FROM profile JOIN profile_tag ' .
-                        'ON profile.id = profile_tag.tagged ' .
-                        'WHERE profile_tag.tagger = ' . $tagger . ' ' .
-                        'AND profile_tag.tag = "' . $tag . '" ');
-        $tagged = array();
-        while ($profile->fetch()) {
-            $tagged[] = clone($profile);
-        }
-        return $tagged;
-    }
-
     // @fixme: move this to Profile_list?
     static function cleanup($profile_list) {
         $ptag = new Profile_tag();

@@ -948,6 +948,10 @@ class OStatusPlugin extends Plugin
         }
 
         $plist = $ptag->getMeta();
+        if ($plist->private) {
+            return true;
+        }
+
         $act = new Activity();
 
         $tagger = $plist->getTagger();
@@ -988,6 +992,10 @@ class OStatusPlugin extends Plugin
         }
 
         $plist = $ptag->getMeta();
+        if ($plist->private) {
+            return true;
+        }
+
         $act = new Activity();
 
         $tagger = $plist->getTagger();
