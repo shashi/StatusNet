@@ -144,7 +144,9 @@ class Router
             $m->connect('main/sup/:seconds', array('action' => 'sup'),
                         array('seconds' => '[0-9]+'));
 
-            $m->connect('main/tagprofile/:id', array('action' => 'tagprofile'));
+            $m->connect('main/tagprofile', array('action' => 'tagprofile'));
+            $m->connect('main/tagprofile/:id', array('action' => 'tagprofile'),
+                                               array('id' => '[0-9]+'));
 
             $m->connect('main/oembed',
                         array('action' => 'oembed'));
@@ -268,8 +270,8 @@ class Router
                         array('action' => 'tag'),
                         array('tag' => '[\pL\pN_\-\.]{1,64}'));
 
-            $m->connect('peopletag/:tag',
-                        array('action' => 'peopletag'),
+            $m->connect('selftag/:tag',
+                        array('action' => 'selftag'),
                         array('tag' => '[a-zA-Z0-9]+'));
 
             // groups
@@ -865,6 +867,11 @@ class Router
 
                 // people tags
 
+                $m->connect('peopletags', array('action' => 'publicpeopletagcloud'));
+
+                $m->connect('peopletag/:tag', array('action' => 'peopletag',
+                                                    'tag'    => '[A-Za-z0-9]{1,64}'));
+
                 $m->connect('main/addpeopletag', array('action' => 'addpeopletag'));
 
                 $m->connect('main/removepeopletag', array('action' => 'removepeopletag'));
@@ -876,6 +883,16 @@ class Router
                 $m->connect(':nickname/peopletags',
                                 array('action' => 'peopletagsbyuser',
                                       'nickname' => '[a-zA-Z0-9]{1,64}'));
+
+                $m->connect(':nickname/peopletags/private',
+                                array('action' => 'peopletagsbyuser',
+                                      'nickname' => '[a-zA-Z0-9]{1,64}',
+                                      'private' => 1));
+
+                $m->connect(':nickname/peopletags/public',
+                                array('action' => 'peopletagsbyuser',
+                                      'nickname' => '[a-zA-Z0-9]{1,64}',
+                                      'public' => 1));
 
                 $m->connect(':nickname/othertags',
                                 array('action' => 'peopletagsforuser',

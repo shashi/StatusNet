@@ -253,6 +253,11 @@ $default =
         'group' =>
         array('maxaliases' => 3,
               'desclimit' => null),
+        'peopletag' =>
+        array('maxtags' => 100, // maximum number of tags a user can create.
+              'maxpeople' => 500, // maximum no. of people with the same tag by the same user
+              'allow_tagging' => array('all' => true), // equivalent to array('local' => true, 'remote' => true)
+              'desclimit' => null),
         'oohembed' => array('endpoint' => 'http://oohembed.com/oohembed/'),
         'search' =>
         array('type' => 'fulltext'),
@@ -321,6 +326,7 @@ $default =
               'maxlength' => 25,
               'maxnoticelength' => -1),
         'http' => // HTTP client settings when contacting other sites
-        array('ssl_cafile' => false // To enable SSL cert validation, point to a CA bundle (eg '/usr/lib/ssl/certs/ca-certificates.crt')
+        array('ssl_cafile' => false, // To enable SSL cert validation, point to a CA bundle (eg '/usr/lib/ssl/certs/ca-certificates.crt')
+              'curl' => false, // Use CURL backend for HTTP fetches if available. (If not, PHP's socket streams will be used.)
               ),
         );

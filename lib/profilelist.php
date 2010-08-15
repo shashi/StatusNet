@@ -249,10 +249,11 @@ class ProfileListItem extends Widget
         if (!empty($user)) {
             if ($user->id == $this->profile->id) {
                 $tags = new SelftagsWidget($this->out, $user, $this->profile);
-            } else {
+                $tags->show();
+            } else if ($user->getProfile()->canTag($this->profile)) {
                 $tags = new PeopletagsWidget($this->out, $user, $this->profile);
+                $tags->show();
             }
-            $tags->show();
         }
     }
 

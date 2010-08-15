@@ -60,6 +60,22 @@ class UnsubscribepeopletagAction extends Action
             $this->clientError(_('You must be logged in to unsubscribe to a peopletag.'));
             return false;
         }
+        // Only allow POST requests
+
+        if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+            $this->clientError(_('This action only accepts POST requests.'));
+            return false;
+        }
+
+        // CSRF protection
+
+        $token = $this->trimmed('token');
+
+        if (!$token || $token != common_session_token()) {
+            $this->clientError(_('There was a problem with your session token.'.
+                                 ' Try again, please.'));
+            return false;
+        }
 
         $tagger_arg = $this->trimmed('tagger');
         $tag_arg = $this->trimmed('tag');
@@ -67,27 +83,12 @@ class UnsubscribepeopletagAction extends Action
         $id = intval($this->arg('id'));
         if ($id) {
             $this->peopletag = Profile_list::staticGet('id', $id);
-        } else if ($tagger_arg && $tag_arg) {
-            $tagger = common_canonical_nickname($tagger_arg);
-            $tag = common_canonical_tag($tag_arg);
-
-            // Permanent redirect on non-canonical nickname
-
-            if ($tagger_arg != $tagger || $tag_arg != $tag) {
-                $args = array('tagger' => $tagger, 'tag' => $tag);
-                common_redirect(common_local_url('unsubscribepeopletag', $args), 301);
-                return false;
-            }
-
-            $this->peopletag = Profile_list::pkeyGet(array('tagger' => $tagger,
-                                                           'tag' => $tag));
         } else {
-            $this->clientError(_('No tagger, tag or ID.'), 404);
+            $this->clientError(_('No ID given.'), 404);
             return false;
         }
 
-
-        if (!$this->peopletag) {
+        if (!$this->peopletag || $this->peopletag->private) {
             $this->clientError(_('No such peopletag.'), 404);
             return false;
         }
@@ -113,13 +114,7 @@ class UnsubscribepeopletagAction extends Action
 
         $cur = common_current_user();
 
-        try {
-                Profile_tag_subscription::remove($this->peopletag, $cur);
-            }
-        } catch (Exception $e) {
-            $this->serverError(sprintf(_('Could not unsubscriber user %1$s from peopletag %2$s.'),
-                                       $cur->nickname, $this->peopletag->tag));
-        }
+        Profile_tag_subscription::remove($this->peopletag, $cur);
 
         if ($this->boolean('ajax')) {
             $this->startHTML('text/xml;charset=utf-8');

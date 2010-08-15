@@ -118,13 +118,20 @@ class PeopletagsforuserAction extends OwnerDesignAction
 
     function showPageNotice()
     {
-        $this->elementStart('div', 'instructions');
+        $this->elementStart('dl', 'filter_tags');
+        $this->elementStart('dd', array('id' => 'filter_tags_for',
+                                         'class' => 'child_1'));
+
+        $user = common_current_user();
+        $text = ($this->tagged->id == @$user->id) ? _('People tags by you') :
+                sprintf(_('People tags by %s'), $this->tagged->nickname);
         $this->element('a',
-            array('href' =>
-                common_local_url('peopletagsbyuser',
-                    array('nickname' => $this->tagged->nickname))),
-                        sprintf(_('People tags by %s'), $this->tagged->nickname));
-        $this->elementEnd('div');
+                       array('href' =>
+                             common_local_url('peopletagsbyuser',
+                                              array('nickname' => $this->tagged->nickname))),
+                           $text);
+        $this->elementEnd('dd');
+        $this->elementEnd('dl');
     }
 
 
@@ -135,9 +142,9 @@ class PeopletagsforuserAction extends OwnerDesignAction
         $offset = ($this->page-1) * PEOPLETAGS_PER_PAGE;
         $limit  = PEOPLETAGS_PER_PAGE + 1;
 
-        $ptags = $this->tagged->getOtherTags($offset, $limit);
+        $ptags = $this->tagged->getOtherTags(common_current_user(), $offset, $limit);
 
-        $pl = new PeopletagList($ptags, $this->user, $this);
+        $pl = new PeopletagList($ptags, $this);
         $cnt = $pl->show();
 
         $this->pagination($this->page > 1, $cnt > PEOPLETAGS_PER_PAGE,

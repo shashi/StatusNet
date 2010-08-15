@@ -45,8 +45,9 @@ class PeopletagsalmonAction extends SalmonAction
             $this->clientError(_('No such peopletag.'));
         }
 
-        $oprofile = Ostatus_profile::staticGet('profile_tag_id', $id);
-        if ($oprofile) {
+        $oprofile = Ostatus_profile::staticGet('peopletag_id', $id);
+
+        if (!empty($oprofile)) {
             $this->clientError(_m("Can't accept remote posts for a remote peopletag."));
         }
 
@@ -94,7 +95,7 @@ class PeopletagsalmonAction extends SalmonAction
         common_log(LOG_INFO, "Remote profile {$oprofile->uri} subscribing to local peopletag ".$this->peopletag->getBestName());
         $profile = $oprofile->localProfile();
 
-        if ($profile->isMember($this->peopletag)) {
+        if ($this->peopletag->hasSubscriber($profile)) {
             // Already a member; we'll take it silently to aid in resolving
             // inconsistencies on the other side.
             return true;
@@ -104,8 +105,7 @@ class PeopletagsalmonAction extends SalmonAction
         // his own updates?
 
         try {
-                Profile_tag_subscription::add($this->peopletag->tagger, $this->peopletag->tag, $profile->id);
-
+            Profile_tag_subscription::add($this->peopletag, $profile);
         } catch (Exception $e) {
             $this->serverError(sprintf(_m('Could not subscribe remote user %1$s to peopletag %2$s.'),
                                        $oprofile->uri, $this->peopletag->getBestName()));

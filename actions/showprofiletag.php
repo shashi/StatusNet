@@ -75,7 +75,11 @@ class ShowprofiletagAction extends Action
         $this->tagger = $user->getProfile();
         $this->peopletag = Profile_list::pkeyGet(array('tagger' => $user->id, 'tag' => $tag));
 
-        if (!$this->peopletag) {
+        $current = common_current_user();
+        $can_see = !empty($this->peopletag) && (!$this->peopletag->private ||
+                   ($this->peopletag->private && $this->peopletag->tagger === $current->id));
+
+        if (!$can_see) {
             $this->clientError(_('No such peopletag.'), 404);
             return false;
         }
@@ -106,15 +110,43 @@ class ShowprofiletagAction extends Action
     function title()
     {
         if ($this->page > 1) {
+
+            if($this->peopletag->private) {
+                return sprintf(_('Private timeline for people tagged %s by you, page %d'),
+                                $this->peopletag->tag, $this->page);
+            }
+
+            $current = common_current_user();
+            if (!empty($current) && $current->id == $this->peopletag->tagger) {
+                return sprintf(_('Timeline for people tagged %s by you, page %d'),
+                                $this->peopletag->tag, $this->page);
+            }
+
             // TRANS: Page title. %1$s is user nickname, %2$d is page number
-            return sprintf(_('People tagged %1$s by %2$s, page %3$d'),
+            return sprintf(_('Timeline for people tagged %1$s by %2$s, page %3$d'),
+                                $this->peopletag->tag,
+                                $this->tagger->nickname,
+                                $this->page
+                          );
+        } else {
+
+            if($this->peopletag->private) {
+                return sprintf(_('Private timeline of people tagged %s by you'),
+                                $this->peopletag->tag, $this->page);
+            }
+
+            $current = common_current_user();
+            if (!empty($current) && $current->id == $this->peopletag->tagger) {
+                return sprintf(_('Timeline for people tagged %s by you'),
+                                $this->peopletag->tag, $this->page);
+            }
+
+            // TRANS: Page title. %1$s is user nickname, %2$d is page number
+            return sprintf(_('Timeline for people tagged %1$s by %2$s'),
                                 $this->peopletag->tag,
                                 $this->tagger->nickname, 
                                 $this->page
                           );
-        } else {
-            // TRANS: Page title. %1$s is user nickname
-            return sprintf(_('People tagged %1$s by %2$s'), $this->peopletag->tag, $this->tagger->nickname);
         }
     }
 
@@ -124,8 +156,8 @@ class ShowprofiletagAction extends Action
         return array(new Feed(Feed::RSS2,
                 common_local_url(
                     'ApiTimelineList', array(
-                        'user' => $this->tagger->nickname,
-                        'id' => $this->peopletag->tag,
+                        'user' => $this->tagger->id,
+                        'id' => $this->peopletag->id,
                         'format' => 'rss'
                     )
                 ),
@@ -134,8 +166,8 @@ class ShowprofiletagAction extends Action
             new Feed(Feed::ATOM,
                 common_local_url(
                     'ApiTimelineList', array(
-                        'user' => $this->tagger->nickname,
-                        'id' => $this->peopletag->tag,
+                        'user' => $this->tagger->id,
+                        'id' => $this->peopletag->id,
                         'format' => 'atom'
                     )
                 ),
@@ -198,7 +230,8 @@ class ShowprofiletagAction extends Action
 
             $this->pagination(
                 $this->page > 1, $cnt > NOTICES_PER_PAGE,
-                $this->page, 'all', array('nickname' => $this->tagger->nickname)
+                $this->page, 'showprofiletag', array('tag' => $this->peopletag->tag,
+                                                     'tagger' => $this->tagger->nickname)
             );
 
             Event::handle('EndShowProfileTagContent', array($this));
@@ -208,20 +241,15 @@ class ShowprofiletagAction extends Action
     function showSections()
     {
         $this->showTagged();
-        $this->showSubscribers();
+        if (!$this->peopletag->private) {
+            $this->showSubscribers();
+        }
         # $this->showStatistics();
     }
 
     function showPageTitle()
     {
-        $user = common_current_user();
-        if ($user && ($user->id == $this->tagger->id)) {
-            // TRANS: H1 text
-            $this->element('h1', null, sprintf(_("People you tagged %s"), $this->peopletag->tag));
-        } else {
-            // TRANS: H1 text. %1$s is user nickname
-            $this->element('h1', null, sprintf(_('People tagged %s by %s'), $this->peopletag->tag, $this->tagger->nickname));
-        }
+        $this->element('h1', null, $this->title());
     }
 
     function showTagged()
@@ -231,7 +259,19 @@ class ShowprofiletagAction extends Action
         $this->elementStart('div', array('id' => 'entity_tagged',
                                          'class' => 'section'));
         if (Event::handle('StartShowTaggedProfilesMiniList', array($this))) {
-            $this->element('h2', null, $this->title());
+
+            $title = '';
+
+            $current = common_current_user();
+            if(!empty($current) && $this->peopletag->tagger == $current->id) {
+                $title =  sprintf(_('People tagged %s by you'), $this->peopletag->tag);
+            } else {
+                $title = sprintf(_('People tagged %1$s by %2$s'),
+                                $this->peopletag->tag,
+                                $this->tagger->nickname);
+            }
+
+            $this->element('h2', null, $title);
 
             $cnt = 0;
 
@@ -297,7 +337,8 @@ class Peopletag extends PeopletagListItem
 {
     function showStart()
     {
-        $this->out->elementStart('div', array('class' => 'hentry peopletag peopletag-profile',
+        $mode = $this->peopletag->private ? 'private' : 'public';
+        $this->out->elementStart('div', array('class' => 'hentry peopletag peopletag-profile mode-'.$mode,
                                              'id' => 'peopletag-' . $this->peopletag->id));
     }
 

@@ -252,22 +252,13 @@ class Ostatus_profile extends Memcached_DataObject
     }
 
     /**
-     * Send a PuSH unsubscription request to the hub for this feed.
-     * The hub will later send us a confirmation POST to /main/push/callback.
+     * Check if this remote profile has any active local subscriptions, and
+     * if not drop the PuSH subscription feed.
      *
      * @return bool true on success, false on failure
-     * @throws ServerException if feed state is not valid
      */
     public function unsubscribe() {
-        $feedsub = FeedSub::staticGet('uri', $this->feeduri);
-        if (!$feedsub || $feedsub->sub_state == '' || $feedsub->sub_state == 'inactive') {
-            // No active PuSH subscription, we can just leave it be.
-            return true;
-        } else {
-            // PuSH subscription is either active or in an indeterminate state.
-            // Send an unsubscribe.
-            return $feedsub->unsubscribe();
-        }
+        $this->garbageCollect();
     }
 
     /**
@@ -278,11 +269,26 @@ class Ostatus_profile extends Memcached_DataObject
      */
     public function garbageCollect()
     {
+        $feedsub = FeedSub::staticGet('uri', $this->feeduri);
+        return $feedsub->garbageCollect();
+    }
+
+    /**
+     * Check if this remote profile has any active local subscriptions, so the
+     * PuSH subscription layer can decide if it can drop the feed.
+     *
+     * This gets called via the FeedSubSubscriberCount event when running
+     * FeedSub::garbageCollect().
+     *
+     * @return int
+     */
+    public function subscriberCount()
+    {
         if ($this->isGroup()) {
             $members = $this->localGroup()->getMembers(0, 1);
             $count = $members->N;
         } else if ($this->isPeopletag()) {
-            $subscribers = $this->localProfile()->getSubscribers(0, 1);
+            $subscribers = $this->localPeopletag()->getSubscribers(0, 1);
             $count = $subscribers->N;
         } else {
             $profile = $this->localProfile();
@@ -291,13 +297,14 @@ class Ostatus_profile extends Memcached_DataObject
                 $count = 1;
             }
         }
-        if ($count == 0) {
-            common_log(LOG_INFO, "Unsubscribing from now-unused remote feed $this->feeduri");
-            $this->unsubscribe();
-            return true;
-        } else {
-            return false;
-        }
+        common_log(LOG_INFO, __METHOD__ . " SUB COUNT BEFORE: $count");
+
+        // Other plugins may be piggybacking on OStatus without having
+        // an active group or user-to-user subscription we know about.
+        Event::handle('Ostatus_profileSubscriberCount', array($this, &$count));
+        common_log(LOG_INFO, __METHOD__ . " SUB COUNT AFTER: $count");
+
+        return $count;
     }
 
     /**
@@ -487,26 +494,32 @@ class Ostatus_profile extends Memcached_DataObject
      * @param DOMElement $feed for context
      * @param string $source identifier ("push" or "salmon")
      */
+
     public function processEntry($entry, $feed, $source)
     {
         $activity = new Activity($entry, $feed);
 
-        // @todo process all activity objects
-        switch ($activity->objects[0]->type) {
-        case ActivityObject::ARTICLE:
-        case ActivityObject::BLOGENTRY:
-        case ActivityObject::NOTE:
-        case ActivityObject::STATUS:
-        case ActivityObject::COMMENT:
-            break;
-        default:
-            throw new ClientException("Can't handle that kind of post.");
-        }
+        if (Event::handle('StartHandleFeedEntry', array($activity))) {
 
-        if ($activity->verb == ActivityVerb::POST) {
-            $this->processPost($activity, $source);
-        } else {
-            common_log(LOG_INFO, "Ignoring activity with unrecognized verb $activity->verb");
+            // @todo process all activity objects
+            switch ($activity->objects[0]->type) {
+            case ActivityObject::ARTICLE:
+            case ActivityObject::BLOGENTRY:
+            case ActivityObject::NOTE:
+            case ActivityObject::STATUS:
+            case ActivityObject::COMMENT:
+			case null:
+                if ($activity->verb == ActivityVerb::POST) {
+                    $this->processPost($activity, $source);
+                } else {
+                    common_log(LOG_INFO, "Ignoring activity with unrecognized verb $activity->verb");
+                }
+                break;
+            default:
+                throw new ClientException("Can't handle that kind of post.");
+            }
+
+            Event::handle('EndHandleFeedEntry', array($activity));
         }
     }
 
@@ -535,8 +548,17 @@ class Ostatus_profile extends Memcached_DataObject
                 // OK here! assume the default
             } else if ($actor->id == $this->uri || $actor->link == $this->uri) {
                 $this->updateFromActivityObject($actor);
+            } else if ($actor->id) {
+                // We have an ActivityStreams actor with an explicit ID that doesn't match the feed owner.
+                // This isn't what we expect from mainline OStatus person feeds!
+                // Group feeds go down another path, with different validation...
+                // Most likely this is a plain ol' blog feed of some kind which
+                // doesn't match our expectations. We'll take the entry, but ignore
+                // the <author> info.
+                common_log(LOG_WARNING, "Got an actor '{$actor->title}' ({$actor->id}) on single-user feed for {$this->uri}");
             } else {
-                throw new Exception("Got an actor '{$actor->title}' ({$actor->id}) on single-user feed for {$this->uri}");
+                // Plain <author> without ActivityStreams actor info.
+                // We'll just ignore this info for now and save the update under the feed's identity.
             }
 
             $oprofile = $this;
@@ -624,6 +646,7 @@ class Ostatus_profile extends Memcached_DataObject
                         'rendered' => $rendered,
                         'replies' => array(),
                         'groups' => array(),
+                        'peopletags' => array(),
                         'tags' => array(),
                         'urls' => array());
 
@@ -658,6 +681,10 @@ class Ostatus_profile extends Memcached_DataObject
                     $options['location_id'] = $location->location_id;
                 }
             }
+        }
+
+        if ($this->isPeopletag()) {
+            $options['peopletags'][] = $this->localPeopletag();
         }
 
         // Atom categories <-> hashtags
@@ -717,7 +744,7 @@ class Ostatus_profile extends Memcached_DataObject
         common_log(LOG_DEBUG, "Original reply recipients: " . implode(', ', $attention_uris));
         $groups = array();
         $replies = array();
-        foreach ($attention_uris as $recipient) {
+        foreach (array_unique($attention_uris) as $recipient) {
             // Is the recipient a local user?
             $user = User::staticGet('uri', $recipient);
             if ($user) {
@@ -911,12 +938,12 @@ class Ostatus_profile extends Memcached_DataObject
         $feeduri = $discover->discoverFromFeedURL($feed_url);
         $hints['feedurl'] = $feeduri;
 
-        $huburi = $discover->getAtomLink('hub');
+        $huburi = $discover->getHubLink();
         $hints['hub'] = $huburi;
         $salmonuri = $discover->getAtomLink(Salmon::NS_REPLIES);
         $hints['salmon'] = $salmonuri;
 
-        if (!$huburi) {
+        if (!$huburi && !common_config('feedsub', 'fallback_hub')) {
             // We can only deal with folks with a PuSH hub
             throw new FeedSubNoHubException();
         }
@@ -1320,10 +1347,10 @@ class Ostatus_profile extends Memcached_DataObject
                 $discover = new FeedDiscovery();
                 $discover->discoverFromFeedURL($hints['feedurl']);
             }
-            $huburi = $discover->getAtomLink('hub');
+            $huburi = $discover->getHubLink();
         }
 
-        if (!$huburi) {
+        if (!$huburi && !common_config('feedsub', 'fallback_hub')) {
             // We can only deal with folks with a PuSH hub
             throw new FeedSubNoHubException();
         }
@@ -1486,8 +1513,6 @@ class Ostatus_profile extends Memcached_DataObject
         $orig = clone($tag);
 
         $tag->tag = $object->title;
-
-        self::ensureActivityObjectProfile($object->owner);
 
         if (!empty($object->link)) {
             $tag->mainpage = $object->link;

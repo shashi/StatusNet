@@ -37,6 +37,7 @@ class PeopletagsbyuserAction extends OwnerDesignAction
 {
     var $page = null;
     var $tagger = null;
+    var $tags = null;
 
     function isReadOnly($args)
     {
@@ -46,6 +47,14 @@ class PeopletagsbyuserAction extends OwnerDesignAction
     function title()
     {
         if ($this->page == 1) {
+            if ($this->isOwner()) {
+                if ($this->arg('private')) {
+                    return _('Private people tags by you');
+                } else if ($this->arg('public')) {
+                    return _('Public people tags by you');
+                }
+                return _('People tags by you');
+            }
             return sprintf(_("People tags by %s"), $this->tagger->nickname);
         } else {
             return sprintf(_("People tags by %s, page %d"), $this->tagger->nickname, $this->page);
@@ -56,13 +65,17 @@ class PeopletagsbyuserAction extends OwnerDesignAction
     {
         parent::prepare($args);
 
+        if ($this->arg('public') && $this->arg('private')) {
+            $this->args['public'] = $this->args['private'] = false;
+        }
+
         $nickname_arg = $this->arg('nickname');
         $nickname = common_canonical_nickname($nickname_arg);
 
         // Permanent redirect on non-canonical nickname
 
         if ($nickname_arg != $nickname) {
-            $args = array('nickname' => $nickname);
+            $args = $this->getSelfUrlArgs();
             if ($this->arg('page') && $this->arg('page') != 1) {
                 $args['page'] = $this->arg['page'];
             }
@@ -86,15 +99,88 @@ class PeopletagsbyuserAction extends OwnerDesignAction
 
         $this->page = ($this->arg('page')) ? ($this->arg('page')+0) : 1;
 
+
+        $offset = ($this->page-1) * PEOPLETAGS_PER_PAGE;
+        $limit  = PEOPLETAGS_PER_PAGE + 1;
+
+        $user = common_current_user();
+        if ($this->arg('public')) {
+            $this->tags = $this->tagger->getOwnedTags(false, $offset, $limit);
+        } else if ($this->arg('private')) {
+            if (empty($user)) {
+                $this->clientError(_('Not logged in'), 403);
+            }
+
+            if ($this->isOwner()) {
+                $this->tags = $this->tagger->getPrivateTags($offset, $limit);
+            } else {
+                $this->clientError(_('You cannot view others\' private people tags'), 403);
+            }
+        } else {
+            $this->tags = $this->tagger->getOwnedTags(common_current_user(), $offset, $limit);
+        }
         return true;
     }
 
     function handle($args)
     {
         parent::handle($args);
+
+		# Post from the tag dropdown; redirect to a GET
+
+		if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+		    common_redirect(common_local_url('peopletagsbyuser', $this->getSelfUrlArgs()), 303);
+            return;
+		}
+
         $this->showPage();
     }
 
+    function showModeSelector()
+    {
+        $this->elementStart('dl', array('id'=>'filter_tags'));
+        $this->element('dt', null, _('Mode'));
+        $this->elementStart('dd');
+        $this->elementStart('ul');
+        $this->elementStart('li', array('id' => 'filter_tags_for',
+                                         'class' => 'child_1'));
+        $this->element('a',
+                       array('href' =>
+                             common_local_url('peopletagsforuser',
+                                              array('nickname' => $this->user->nickname))),
+                       sprintf(_('People tags for %s'), $this->tagger->nickname));
+        $this->elementEnd('li');
+
+        if ($this->isOwner()) {
+            $this->elementStart('li', array('id'=>'filter_tags_item'));
+            $this->elementStart('form', array('name' => 'modeselector',
+                                               'id' => 'form_filter_bymode',
+                                               'action' => common_local_url('peopletagsbyuser',
+                                                    array('nickname' => $this->tagger->nickname)),
+                                               'method' => 'post'));
+            $this->elementStart('fieldset');
+            $this->element('legend', null, _('Select tag to filter'));
+
+            $priv = $this->arg('private');
+            $pub  = $this->arg('public');
+
+            if (!$priv && !$pub) {
+                $priv = $pub = true;
+            }
+            $this->checkbox('private', _m('Private'), $priv,
+                                _m('Show private tags'));
+            $this->checkbox('public', _m('Public'), $pub,
+                                _m('Show public tags'));
+            $this->hidden('nickname', $this->user->nickname);
+            $this->submit('submit', _('Go'));
+            $this->elementEnd('fieldset');
+            $this->elementEnd('form');
+            $this->elementEnd('li');
+        }
+        $this->elementEnd('ul');
+        $this->elementEnd('dd');
+        $this->elementEnd('dl');
+    }
     function showLocalNav()
     {
         $nav = new PersonalGroupNav($this);
@@ -119,11 +205,7 @@ class PeopletagsbyuserAction extends OwnerDesignAction
     function showPageNotice()
     {
         $this->elementStart('div', 'instructions');
-        $this->element('a',
-            array('href' =>
-                common_local_url('peopletagsforuser',
-                    array('nickname' => $this->tagger->nickname))),
-                        sprintf(_('People tags for %s'), $this->tagger->nickname));
+        $this->showModeSelector();
         $this->elementEnd('div');
     }
 
@@ -131,16 +213,30 @@ class PeopletagsbyuserAction extends OwnerDesignAction
     {
         #TODO: controls here.
 
-        $offset = ($this->page-1) * PEOPLETAGS_PER_PAGE;
-        $limit  = PEOPLETAGS_PER_PAGE + 1;
-
-        $ptags = $this->tagger->getOwnedTags($offset, $limit);
-
-        $pl = new PeopletagList($ptags, $this->user, $this);
+        $pl = new PeopletagList($this->tags, $this);
         $cnt = $pl->show();
 
         $this->pagination($this->page > 1, $cnt > PEOPLETAGS_PER_PAGE,
-                          $this->page, 'peopletagsbyuser', array('nickname' => $this->tagger->id));
+                          $this->page, 'peopletagsbyuser', $this->getSelfUrlArgs());
+    }
+
+    function getSelfUrlArgs()
+    {
+        $args = array();
+        if ($this->arg('private')) {
+            $args['private'] = 1;
+        } else if ($this->arg('public')) {
+            $args['public'] = 1;
+        }
+        $args['nickname'] = $this->trimmed('nickname');
+
+        return $args;
+    }
+
+    function isOwner()
+    {
+        $user = common_current_user();
+        return !empty($user) && $user->id == $this->tagger->id;
     }
 
     function showSections()

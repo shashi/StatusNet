@@ -200,7 +200,7 @@ class ApiTimelineListAction extends ApiPrivateAuthAction
     {
         $fn = array($this->list, 'getNotices');
         list($this->notices, $this->next_cursor, $this->prev_cursor) =
-                Profile_list::getAtCursor($fn, $this->cursor, 20);
+                Profile_list::getAtCursor($fn, array(), $this->cursor, 20);
         if (!$this->notices) {
             $this->notices = array();
         }

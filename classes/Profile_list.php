@@ -33,6 +33,12 @@ class Profile_list extends Memcached_DataObject
     /* the code above is auto generated do not remove the tag below */
     ###END_AUTOCODE
 
+
+    function getTagger()
+    {
+        return Profile::staticGet('id', $this->tagger);
+    }
+
     function getBestName()
     {
         return $this->tag;
@@ -266,6 +272,19 @@ class Profile_list extends Memcached_DataObject
         return $result;
     }
 
+    function asAtomAuthor()
+    {
+        $xs = new XMLStringer(true);
+
+        $tagger = $this->getTagger();
+        $xs->elementStart('author');
+        $xs->element('name', null, '@' . $tagger->nickname . '/' . $this->tag);
+        $xs->element('uri', null, $this->permalink());
+        $xs->elementEnd('author');
+
+        return $xs->getString();
+    }
+
     function asActivitySubject()
     {
         return $this->asActivityNoun('subject');
@@ -315,7 +334,7 @@ class Profile_list extends Memcached_DataObject
     }
 
     /* create the tag if it does not exist, return it */
-    static function ensureTag($tagger, $tag, $description=null)
+    static function ensureTag($tagger, $tag, $description=null, $private=false)
     {
         $ptag = Profile_list::getByTaggerAndTag($tagger, $tag);
 
@@ -323,7 +342,8 @@ class Profile_list extends Memcached_DataObject
             $args = array(
                 'tag' => $tag,
                 'tagger' => $tagger,
-                'description' => $description
+                'description' => $description,
+                'private' => $private
             );
 
             $new_tag = Profile_list::saveNew($args);
@@ -335,7 +355,7 @@ class Profile_list extends Memcached_DataObject
 
     static function maxDescription()
     {
-        $desclimit = common_config('profiletag', 'desclimit');
+        $desclimit = common_config('peopletag', 'desclimit');
         // null => use global limit (distinct from 0!)
         if (is_null($desclimit)) {
             $desclimit = common_config('site', 'textlimit');
@@ -357,6 +377,18 @@ class Profile_list extends Memcached_DataObject
 
         $ptag->query('BEGIN');
 
+        if (empty($tagger)) {
+            throw new Exception(_('No tagger specified.'));
+        }
+
+        if (empty($tag)) {
+            throw new Exception(_('No tag specified.'));
+        }
+
+        if (empty($mainpage)) {
+            $mainpage = null;
+        }
+
         if (empty($uri)) {
             // fill in later...
             $uri = null;
@@ -366,9 +398,18 @@ class Profile_list extends Memcached_DataObject
             $mainpage = null;
         }
 
+        if (empty($description)) {
+            $description = null;
+        }
+
+        if (empty($private)) {
+            $private = false;
+        }
+
         $ptag->tagger      = $tagger;
         $ptag->tag         = $tag;
         $ptag->description = $description;
+        $ptag->private     = $private;
         $ptag->uri         = $uri;
         $ptag->mainpage    = $mainpage;
         $ptag->created     = common_sql_now();
@@ -396,7 +437,10 @@ class Profile_list extends Memcached_DataObject
             $user = User::staticGet('id', $ptag->tagger);
             if(!empty($user)) {
                 $ptag->mainpage = common_local_url('showprofiletag', array('tag' => $ptag->tag, 'tagger' => $user->nickname));
+            } else {
+                $ptag->mainpage = $uri; // assume this is a remote peopletag and the uri works
             }
+
             $result = $ptag->update($orig);
             if (!$result) {
                 common_log_db_error($ptag, 'UPDATE', __FILE__);
@@ -416,7 +460,7 @@ class Profile_list extends Memcached_DataObject
      * @returns array(array lists, int next_cursor, int previous_cursor)
      */
 
-    static function getAtCursor($fn, $cursor, $count=20)
+    static function getAtCursor($fn, $args, $cursor, $count=20)
     {
         $lists = array();
 
@@ -431,7 +475,8 @@ class Profile_list extends Memcached_DataObject
         } else if($cursor > 0) {
             // if cursor is +ve fetch $count+1 lists before cursor,
             $max_id = $cursor;
-            $list = call_user_func($fn, 0, $count+1, 0, $max_id);
+            $fn_args = array_merge($args, array(0, $count+1, 0, $max_id));
+            $list = call_user_func_array($fn, $fn_args);
             while($list->fetch()) {
                 $lists[] = clone($list);
             }
@@ -446,7 +491,8 @@ class Profile_list extends Memcached_DataObject
             }
 
             // and one list after cursor
-            $prev = call_user_func($fn, 0, 1, $cursor);
+            $fn_args = array_merge($args, array(0, 1, $cursor));
+            $prev = call_user_func_array($fn, $fn_args);
             while($prev->fetch()) {
                 if(isset($lists[0]->cursor)) {
                     $prev_cursor = -1*$lists[0]->cursor;
@@ -462,7 +508,8 @@ class Profile_list extends Memcached_DataObject
             // if cursor is -ve fetch $count+2 lists created after -cursor-1,
             $since_id = abs($cursor)-1;
 
-            $list = call_user_func($fn, 0, $count+2, $since_id);
+            $fn_args = array_merge($args, array(0, $count+2, $since_id));
+            $list = call_user_func_array($fn, $fn_args);
             while($list->fetch()) {
                 $lists[] = clone($list);
             }
@@ -490,7 +537,8 @@ class Profile_list extends Memcached_DataObject
             return array($lists, $next_cursor, $prev_cursor);
         }
         else if($cursor == -1) {
-            $list = call_user_func($fn, 0, $count+1);
+            $fn_args = array_merge($args, array(0, $count+1));
+            $list = call_user_func_array($fn, $fn_args);
 
             while($list->fetch()) {
                 $lists[] = clone($list);
@@ -506,6 +554,94 @@ class Profile_list extends Memcached_DataObject
             }
 
             return array($lists, $next_cursor, $prev_cursor);
+        }
+    }
+
+    static function setCache($ckey, &$tag, $offset=0, $limit=null) {
+        $cache = common_memcache();
+        if (empty($cache)) {
+            return false;
+        }
+        $str = '';
+        $tags = array();
+        while ($tag->fetch()) {
+            $str .= $tag->tagger . ':' . $tag->tag . ';';
+            $tags[] = clone($tag);
+        }
+        $str = substr($str, 0, -1);
+        if ($offset>=0 && !is_null($limit)) {
+            $tags = array_slice($tags, $offset, $limit);
+        }
+
+        $tag = new ArrayWrapper($tags);
+
+        return self::cacheSet($ckey, $str);
+    }
+
+    static function getCached($ckey, $offset=0, $limit=null) {
+
+        $keys_str = self::cacheGet($ckey);
+        if ($keys_str === false) {
+            return false;
+        }
+
+        $pairs = explode(';', $key_str);
+        $keys = array();
+        foreach ($pairs as $pair) {
+            $keys[] = explode(':', $pair);
+        }
+
+        if ($$offset>=0 && !is_null($limit)) {
+            $keys = array_slice($keys, $offset, $limit);
+        }
+        return self::getByKeys($keys, $tagger);
+    }
+
+    static function getByKeys($keys) {
+        $cache = common_memcache();
+
+        if (!empty($cache)) {
+            $tags = array();
+
+            foreach ($keys as $key) {
+                $t = Profile_list::getByTaggerAndTag($key[0], $key[1]);
+                if (!empty($t)) {
+                    $tags[] = $t;
+                }
+            }
+            return new ArrayWrapper($tags);
+        } else {
+            $tag = new Profile_list();
+            if (empty($keys)) {
+                //if no IDs requested, just return the tag object
+                return $tag;
+            }
+
+            $pairs = array();
+            foreach ($keys as $key) {
+                $pairs[] = '(' . $key[0] . ', "' . $key[1] . '")';
+            }
+
+            $tag->whereAdd('(tagger, tag) in (' . implode(', ', $pairs) . ')');
+
+            $tag->find();
+
+            $temp = array();
+
+            while ($tag->fetch()) {
+                $temp[$tag->tagger.'-'.$tag->tag] = clone($tag);
+            }
+
+            $wrapped = array();
+
+            foreach ($keys as $key) {
+                $id = $key[0].'-'.$key[1];
+                if (array_key_exists($id, $temp)) {
+                    $wrapped[] = $temp[$id];
+                }
+            }
+
+            return new ArrayWrapper($wrapped);
         }
     }
 }

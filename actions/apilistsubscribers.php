@@ -41,8 +41,8 @@ class ApiListSubscribersAction extends ApiListUsersAction
 
     function handlePost()
     {
-        $result = Profile_tag_subscription::add($this->list->id,
-                            $this->auth_user->id);
+        $result = Profile_tag_subscription::add($this->list,
+                            $this->auth_user);
 
         if(empty($result)) {
             $this->clientError(
@@ -86,7 +86,7 @@ class ApiListSubscribersAction extends ApiListUsersAction
             return false;
         }
 
-        $result = $ptag->delete();
+        Profile_tag_subscription::remove($this->list, $this->auth_user);
 
         if(empty($result)) {
             $this->clientError(
@@ -120,6 +120,6 @@ class ApiListSubscribersAction extends ApiListUsersAction
     {
         $fn = array($this->list, 'getSubscribers');
         list($this->users, $this->next_cursor, $this->prev_cursor) =
-            Profile_list::getAtCursor($fn, $this->cursor, 20);
+            Profile_list::getAtCursor($fn, array(), $this->cursor, 20);
     }
 }

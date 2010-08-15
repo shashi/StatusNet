@@ -28,6 +28,15 @@ set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__FILE__) . '/ext
 
 class FeedSubException extends Exception
 {
+    function __construct($msg=null)
+    {
+        $type = get_class($this);
+        if ($msg) {
+            parent::__construct("$type: $msg");
+        } else {
+            parent::__construct($type);
+        }
+    }
 }
 
 class OStatusPlugin extends Plugin
@@ -53,9 +62,9 @@ class OStatusPlugin extends Plugin
                   array('action' => 'ostatusinit'), array('nickname' => '[A-Za-z0-9_-]+'));
         $m->connect('main/ostatus?group=:group',
                   array('action' => 'ostatusinit'), array('group' => '[A-Za-z0-9_-]+'));
-        $m->connect('main/ostatus?nickname=:user&peopletag=:tag',
-                  array('action' => 'ostatusinit'), array('user' => '[A-Za-z0-9_-]+',
-                                                          'tag' => '[A-Za-z0-9_-]+'));
+        $m->connect('main/ostatus?peopletag=:peopletag&tagger=:tagger',
+                  array('action' => 'ostatusinit'), array('tagger' => '[A-Za-z0-9_-]+',
+                                                          'peopletag' => '[A-Za-z0-9_-]+'));
 
         // Remote subscription actions
         $m->connect('main/ostatussub',
@@ -173,6 +182,9 @@ class OStatusPlugin extends Plugin
 
             // Also, we'll add in the salmon link
             $salmon = common_local_url($salmonAction, array('id' => $id));
+            $feed->addLink($salmon, array('rel' => Salmon::REL_SALMON));
+
+            // XXX: these are deprecated
             $feed->addLink($salmon, array('rel' => Salmon::NS_REPLIES));
             $feed->addLink($salmon, array('rel' => Salmon::NS_MENTIONS));
         }
@@ -247,6 +259,81 @@ class OStatusPlugin extends Plugin
                                 _m('Join'));
         }
 
+        return true;
+    }
+
+    function onStartSubscribePeopletagForm($output, $peopletag)
+    {
+        $cur = common_current_user();
+
+        if (empty($cur)) {
+            $output->elementStart('li', 'entity_subscribe');
+            $profile = $peopletag->getTagger();
+            $url = common_local_url('ostatusinit',
+                                    array('tagger' => $profile->nickname, 'peopletag' => $peopletag->tag));
+            $output->element('a', array('href' => $url,
+                                        'class' => 'entity_remote_subscribe'),
+                                _m('Subscribe'));
+
+            $output->elementEnd('li');
+            return false;
+        }
+
+        return true;
+    }
+
+    function onStartShowTagProfileForm($action, $profile)
+    {
+        $action->elementStart('form', array('method' => 'post',
+                                           'id' => 'form_tag_user',
+                                           'class' => 'form_settings',
+                                           'name' => 'tagprofile',
+                                           'action' => common_local_url('tagprofile', array('id' => @$profile->id))));
+
+        $action->elementStart('fieldset');
+        $action->element('legend', null, _('Tag remote profile'));
+        $action->hidden('token', common_session_token());
+
+        $user = common_current_user();
+
+        $action->elementStart('ul', 'form_data');
+        $action->elementStart('li');
+
+        $action->input('uri', _('Remote profile'), $action->trimmed('uri'),
+                     _('OStatus user\'s address, like nickname@example.com or http://example.net/nickname'));
+        $action->elementEnd('li');
+        $action->elementEnd('ul');
+        $action->submit('fetch', _('Fetch'));
+        $action->elementEnd('fieldset');
+        $action->elementEnd('form');
+    }
+
+    function onStartSavePeopletags($action, $profile)
+    {
+        $err = null;
+        $uri = $action->trimmed('uri');
+
+        if (!$profile && $uri) {
+            try {
+                if (Validate::email($uri)) {
+                    $oprofile = Ostatus_profile::ensureWebfinger($uri);
+                } else if (Validate::uri($uri)) {
+                    $oprofile = Ostatus_profile::ensureProfileURL($uri);
+                } else {
+                    throw new Exception('Invalid URI');
+                }
+
+                // redirect to the new profile.
+                common_redirect(common_local_url('tagprofile', array('id' => $oprofile->profile_id)), 303);
+                return false;
+
+            } catch (Exception $e) {
+                $err = _m("Sorry, we could not reach that address. Please make sure that the OStatus address is like nickname@example.com or http://example.net/nickname");
+            }
+
+            $action->showForm($err);
+            return false;
+        }
         return true;
     }
 
@@ -492,6 +579,24 @@ class OStatusPlugin extends Plugin
     }
 
     /**
+     * Tell the FeedSub infrastructure whether we have any active OStatus
+     * usage for the feed; if not it'll be able to garbage-collect the
+     * feed subscription.
+     * 
+     * @param FeedSub $feedsub
+     * @param integer $count in/out
+     * @return mixed hook return code
+     */
+    function onFeedSubSubscriberCount($feedsub, &$count)
+    {
+        $oprofile = Ostatus_profile::staticGet('feeduri', $feedsub->uri);
+        if ($oprofile) {
+            $count += $oprofile->subscriberCount();
+        }
+        return true;
+    }
+
+    /**
      * When about to subscribe to a remote user, start a server-to-server
      * PuSH subscription if needed. If we can't establish that, abort.
      *
@@ -729,7 +834,7 @@ class OStatusPlugin extends Plugin
                 throw new Exception(_m('Could not set up remote peopletag subscription.'));
             }
 
-            $sub = Profile::staticGet($user->id);
+            $sub = $user->getProfile();
             $tagger = Profile::staticGet($peopletag->tagger);
 
             $act = new Activity();
@@ -749,7 +854,7 @@ class OStatusPlugin extends Plugin
                                     $oprofile->getBestName(),
                                     $tagger->getBestName());
 
-            if ($oprofile->notifyActivity($act, $member)) {
+            if ($oprofile->notifyActivity($act, $sub)) {
                 return true;
             } else {
                 $oprofile->garbageCollect();
@@ -795,7 +900,7 @@ class OStatusPlugin extends Plugin
                                     $oprofile->getBestName(),
                                     $tagger->getBestName());
 
-            $oprofile->notifyActivity($act, $member);
+            $oprofile->notifyActivity($act, $user);
         }
     }
 
@@ -851,30 +956,36 @@ class OStatusPlugin extends Plugin
             return true;
         }
 
+        $plist = $ptag->getMeta();
         $act = new Activity();
 
-        $tagger = Profile::staticGet('id', $ptag->tagger);
+        $tagger = $plist->getTagger();
         $tagged = Profile::staticGet('id', $ptag->tagged);
 
         $act->verb = ActivityVerb::TAG;
         $act->id   = TagURI::mint('tag_profile:%d:%d:%s',
-                                  $ptag->tagger, $ptag->id,
+                                  $plist->tagger, $plist->id,
                                   common_date_iso8601(time()));
         $act->time = time();
         $act->title = _("Tag");
         $act->content = sprintf(_("%s tagged %s in the list %s"),
                                 $tagger->getBestName(),
                                 $tagged->getBestName(),
-                                $ptag->getBestName());
+                                $plist->getBestName());
 
         $act->actor  = ActivityObject::fromProfile($tagger);
-        $act->object = ActivityObject::fromProfile($tagged);
-        $act->target = ActivityObject::fromPeopletag($ptag);
+        $act->objects = array(ActivityObject::fromProfile($tagged));
+        $act->target = ActivityObject::fromPeopletag($plist);
 
         $oprofile->notifyActivity($act, $tagger);
 
         // initiate a PuSH subscription for the person being tagged
-        return $oprofile->subscribe();
+        if (!$oprofile->subscribe()) {
+            throw new Exception(sprintf(_('Could not complete subscription to remote '.
+                                          'profile\'s feed. Tag %s could not be saved.'), $ptag->tag));
+            return false;
+        }
+        return true;
     }
 
     function onEndUntagProfile($ptag)
@@ -885,25 +996,26 @@ class OStatusPlugin extends Plugin
             return true;
         }
 
+        $plist = $ptag->getMeta();
         $act = new Activity();
 
-        $tagger = Profile::staticGet('id', $ptag->tagger);
+        $tagger = $plist->getTagger();
         $tagged = Profile::staticGet('id', $ptag->tagged);
 
         $act->verb = ActivityVerb::UNTAG;
         $act->id   = TagURI::mint('untag_profile:%d:%d:%s',
-                                  $ptag->tagger, $ptag->id,
+                                  $plist->tagger, $plist->id,
                                   common_date_iso8601(time()));
         $act->time = time();
         $act->title = _("Untag");
         $act->content = sprintf(_("%s untagged %s from the list %s"),
                                 $tagger->getBestName(),
                                 $tagged->getBestName(),
-                                $ptag->getBestName());
+                                $plist->getBestName());
 
         $act->actor  = ActivityObject::fromProfile($tagger);
-        $act->object = ActivityObject::fromProfile($tagged);
-        $act->target = ActivityObject::fromPeopletag($ptag);
+        $act->objects = array(ActivityObject::fromProfile($tagged));
+        $act->target = ActivityObject::fromPeopletag($plist);
 
         $oprofile->notifyActivity($act, $tagger);
 
@@ -1125,6 +1237,18 @@ class OStatusPlugin extends Plugin
         if (preg_match("/$template/", $url, $matches)) {
             return intval($matches[1]);
         }
+        return false;
+    }
+
+    public function onStartProfileGetAtomFeed($profile, &$feed)
+    {
+        $oprofile = Ostatus_profile::staticGet('profile_id', $profile->id);
+
+        if (empty($oprofile)) {
+            return true;
+        }
+
+        $feed = $oprofile->feeduri;
         return false;
     }
 }

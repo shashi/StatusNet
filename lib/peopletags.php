@@ -54,16 +54,12 @@ class PeopletagsWidget extends Widget
     var $tagger=null;
     var $tagged=null;
 
-    function __construct($out, $tagger, $tagged, $private=-1)
+    function __construct($out, $tagger, $tagged)
     {
         parent::__construct($out);
 
         $this->user   = common_current_user();
-        if ($private === -1) {
-            $private = empty($this->user) ? false : null;
-        }
-
-        $this->tag = Profile_tag::getTags($tagger->id, $tagged->id, $private);
+        $this->tag = Profile_tag::getTags($tagger->id, $tagged->id, $this->user);
         $this->tagger = $tagger;
         $this->tagged = $tagged;
     }
@@ -185,7 +181,7 @@ class SelftagsWidget extends PeopletagsWidget
     function url($tag)
     {
         // link to self tag page
-        return common_local_url('peopletag', array('tag' => $tag));
+        return common_local_url('selftag', array('tag' => $tag));
     }
 
     function label()

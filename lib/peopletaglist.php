@@ -34,7 +34,6 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
 
 require_once INSTALLDIR.'/lib/widget.php';
 
-define('MINI_PROFILES_PER_TAG', 7);
 define('PEOPLETAGS_PER_PAGE', 20);
 
 /**
@@ -53,13 +52,15 @@ class PeopletagList extends Widget
     /** current user **/
     var $user = null;
 
-    function __construct($peopletag, $owner=null, $action=null)
+    function __construct($peopletag, $action=null)
     {
         parent::__construct($action);
 
         $this->peopletag = $peopletag;
 
-        if (common_logged_in()) {
+        if (!empty($owner)) {
+            $this->user = $owner;
+        } else {
             $this->user = common_current_user();
         }
     }
@@ -123,12 +124,7 @@ class PeopletagListItem extends Widget
 
     function url()
     {
-        if(!empty($this->peopletag->mainpage)) {
-            return $this->peopletag->mainpage;
-        }
-        return common_local_url('showprofiletag',
-                array('tagger' => $this->profile->nickname,
-                      'tag' => $this->peopletag->tag));
+        return $this->peopletag->homeUrl();
     }
 
     function show()
@@ -149,7 +145,8 @@ class PeopletagListItem extends Widget
 
     function showStart()
     {
-        $this->out->elementStart('li', array('class' => 'hentry peopletag',
+        $mode = ($this->peopletag->private) ? 'private' : 'public';
+        $this->out->elementStart('li', array('class' => 'hentry peopletag mode-' . $mode,
                                              'id' => 'peopletag-' . $this->peopletag->id));
     }
 
@@ -162,6 +159,7 @@ class PeopletagListItem extends Widget
     {
         $this->showCreator();
         $this->showTag();
+        $this->showPrivacy();
         $this->showUpdated();
         $this->showActions();
         $this->showDescription();
@@ -196,25 +194,29 @@ class PeopletagListItem extends Widget
         $this->out->element('a', array('href' =>
                     common_local_url('editpeopletag', array('tagger' => $this->profile->nickname,
                                                     'tag' => $this->peopletag->tag)),
-                                  'title' => _('Edit profile settings')),
+                                  'title' => _('Edit peopletag settings')),
                        _('Edit'));
         $this->out->elementEnd('li');
     }
 
     function showSubscribeForm()
     {
-        if ($this->current) {
-            $this->out->elementStart('li');
+        $this->out->elementStart('li');
 
-            if ($this->peopletag->hasSubscriber($this->current->id)) {
-                $form = new UnsubscribePeopletagForm($this->out, $this->peopletag);
-                $form->show();
-            } else {
-                $form = new SubscribePeopletagForm($this->out, $this->peopletag);
-                $form->show();
+        if (Event::handle('StartSubscribePeopletagForm', array($this->out, $this->peopletag))) {
+            if ($this->current) {
+                if ($this->peopletag->hasSubscriber($this->current->id)) {
+                    $form = new UnsubscribePeopletagForm($this->out, $this->peopletag);
+                    $form->show();
+                } else {
+                    $form = new SubscribePeopletagForm($this->out, $this->peopletag);
+                    $form->show();
+                }
             }
-            $this->out->elementEnd('li');
+            Event::handle('EndSubscribePeopletagForm', array($this->out, $this->peopletag));
         }
+
+        $this->out->elementEnd('li');
     }
 
     function showCreator()
@@ -245,6 +247,17 @@ class PeopletagListItem extends Widget
                 array('title' => common_date_w3dtf($this->peopletag->modified),
                       'class' => 'updated'),
                 common_date_string($this->peopletag->modified));
+        }
+    }
+
+    function showPrivacy()
+    {
+        if ($this->peopletag->private) {
+            $this->out->elementStart('a',
+                array('href' => common_local_url('peopletagsbyuser',
+                    array('nickname' => $this->profile->nickname, 'private' => 1))));
+            $this->out->element('span', 'privacy_mode', _('Private'));
+            $this->out->elementEnd('a');
         }
     }
 
@@ -287,7 +300,10 @@ class PeopletagListItem extends Widget
     {
         $this->out->elementStart('div', 'entity_actions');
         $this->out->elementStart('ul');
-        $this->showSubscribeForm();
+
+        if (!$this->peopletag->private) {
+            $this->showSubscribeForm();
+        }
 
         if (!empty($this->current) && $this->profile->id == $this->current->id) {
             $this->showOwnerOptions();

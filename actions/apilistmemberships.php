@@ -55,6 +55,12 @@ class ApiListMembershipsAction extends ApiBareAuthAction
 
         $this->cursor = (int) $this->arg('cursor', -1);
         $this->user = $this->getTargetUser($this->arg('user'));
+
+        if (empty($this->user)) {
+            $this->clientError(_('No such user.'), 404, $this->format);
+            return;
+        }
+
         $this->getLists();
 
         return true;
@@ -73,11 +79,6 @@ class ApiListMembershipsAction extends ApiBareAuthAction
     function handle($args)
     {
         parent::handle($args);
-
-        if (empty($this->user)) {
-            $this->clientError(_('No such user.'), 404, $this->format);
-            return;
-        }
 
         switch($this->format) {
         case 'xml':
@@ -113,14 +114,11 @@ class ApiListMembershipsAction extends ApiBareAuthAction
 
     function getLists()
     {
-        if(empty($this->user)) {
-            return;
-        }
-
         $profile = $this->user->getProfile();
         $fn = array($profile, 'getOtherTags');
+
         # 20 lists
         list($this->lists, $this->next_cursor, $this->prev_cursor) =
-                Profile_list::getAtCursor($fn, $this->cursor, 20);
+                Profile_list::getAtCursor($fn, array($this->auth_user), $this->cursor, 20);
     }
 }

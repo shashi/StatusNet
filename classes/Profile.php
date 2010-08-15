@@ -152,17 +152,16 @@ class Profile extends Memcached_DataObject
      *
      * @return mixed Notice or null
      */
+
     function getCurrentNotice()
     {
-        $notice = new Notice();
-        $notice->profile_id = $this->id;
-        // @fixme change this to sort on notice.id only when indexes are updated
-        $notice->orderBy('created DESC, notice.id DESC');
-        $notice->limit(1);
-        if ($notice->find(true)) {
+        $notice = $this->getNotices(0, 1);
+
+        if ($notice->fetch()) {
             return $notice;
+        } else {
+            return null;
         }
-        return null;
     }
 
     function getTaggedNotices($tag, $offset=0, $limit=NOTICES_PER_PAGE, $since_id=0, $max_id=0)
@@ -300,13 +299,6 @@ class Profile extends Memcached_DataObject
         }
     }
 
-    function isTagged($peopletag) {
-        $tag = Profile_tag::pkeyGet(array('tagger' => $peopletag->tagger,
-                                          'tagged' => $this->id,
-                                          'tag'    => $peopletag->tag));
-        return !empty($tag);
-    }
-
     function isAdmin($group)
     {
         $mem = new Group_member();
@@ -348,21 +340,58 @@ class Profile extends Memcached_DataObject
         return $groups;
     }
 
-    function getPeopletags($tagger=null, $private=null)
+    function isTagged($peopletag)
     {
-        if ($tagger === null) {
-            $tagger_id = $this->id;
-        } else {
-            $tagger_id = $tagger->id;
-        }
-
-        return Profile_tag::getTags($tagger->id, $tagged_id, $private);
+        $tag = Profile_tag::pkeyGet(array('tagger' => $peopletag->tagger,
+                                          'tagged' => $this->id,
+                                          'tag'    => $peopletag->tag));
+        return !empty($tag);
     }
 
-    function getOwnedTags($offset=0, $limit=null, $since_id=0, $max_id=0)
+    function canTag($tagged)
+    {
+        if (empty($tagged)) {
+            return false;
+        }
+
+        if ($tagged->id == $this->id) {
+            return true;
+        }
+
+        $all = common_config('peopletag', 'allow_tagging', 'all');
+        $local = common_config('peopletag', 'allow_tagging', 'local');
+        $remote = common_config('peopletag', 'allow_tagging', 'remote');
+        $subs = common_config('peopletag', 'allow_tagging', 'subs');
+
+        if ($all) {
+            return true;
+        }
+
+        $tagged_user = $tagged->getUser();
+        if (!empty($tagged_user)) {
+            if ($local) {
+                return true;
+            }
+        } else if ($subs) {
+            return (Subscription::exists($this, $tagged) ||
+                    Subscription::exists($tagged, $this));
+        } else if ($remote) {
+            return true;
+        }
+        return false;
+    }
+
+    function getOwnedTags($auth_user, $offset=0, $limit=null, $since_id=0, $max_id=0)
     {
         $tags = new Profile_list();
         $tags->tagger = $this->id;
+
+        if (($auth_user instanceof User || $auth_user instanceof Profile) &&
+                $auth_user->id === $this->id) {
+            // no condition, get both private and public tags
+        } else {
+            $tags->private = false;
+        }
 
         $tags->selectAdd('id as "cursor"');
 
@@ -384,19 +413,24 @@ class Profile extends Memcached_DataObject
         return $tags;
     }
 
-    function getOtherTags($offset=0, $limit=null, $since_id=0, $max_id=0)
+    function getOtherTags($auth_user=null, $offset=0, $limit=null, $since_id=0, $max_id=0)
     {
         $lists = new Profile_list();
+
         $tags = new Profile_tag();
-        $cursor_field = '';
+        $tags->tagged = $this->id;
 
         $lists->joinAdd($tags);
         #@fixme: postgres (round(date_part('epoch', my_date)))
         $lists->selectAdd('unix_timestamp(profile_tag.modified) as "cursor"');
 
-        $lists->whereAdd('profile_tag.tagged = '.$this->id);
-        # don't want self tags.
-        $lists->whereAdd('profile_tag.tagger != '.$this->id);
+        if ($auth_user instanceof User || $auth_user instanceof Profile) {
+            $lists->whereAdd('( ( profile_list.private = false ) ' .
+                             'OR ( profile_list.tagger = ' . $auth_user->id . ' AND ' .
+                             'profile_list.private = true ) )');
+        } else {
+            $lists->private = false;
+        }
 
         if ($since_id>0) {
            $lists->whereAdd('cursor > '.$since_id);
@@ -410,26 +444,48 @@ class Profile extends Memcached_DataObject
             $lists->limit($offset, $limit);
         }
 
-        $lists->orderBy('"cursor" DESC');
+        $lists->orderBy('profile_tag.modified DESC');
         $lists->find();
 
         return $lists;
     }
 
+    function getPrivateTags($offset=0, $limit=null, $since_id=0, $max_id=0)
+    {
+        $tags = new Profile_list();
+        $tags->private = true;
+        $tags->tagger = $this->id;
+
+        if ($since_id>0) {
+           $tags->whereAdd('id > '.$since_id);
+        }
+
+        if ($max_id>0) {
+            $tags->whereAdd('id <= '.$max_id);
+        }
+
+        if($offset>=0 && !is_null($limit)) {
+            $tags->limit($offset, $limit);
+        }
+
+        $tags->orderBy('id DESC');
+        $tags->find();
+
+        return $tags;
+    }
+
     function hasLocalTags()
     {
-        $lists = new Profile_list();
         $tags = new Profile_tag();
 
-        $lists->joinAdd($tags);
-        $lists->joinAdd('tagger', 'user:id');
-        $lists->whereAdd('profile_tag.tagged = '.$this->id);
-        $lists->whereAdd('profile_tag.tagger != '.$this->id);
+        $tags->joinAdd(array('tagger', 'user:id'));
+        $tags->whereAdd('tagged  = '.$this->id);
+        $tags->whereAdd('tagger != '.$this->id);
 
-        $lists->limit(0, 1);
-        $lists->query();
+        $tags->limit(0, 1);
+        $tags->fetch();
 
-        return ($lists->N == 0) ? false : true;
+        return ($tags->N == 0) ? false : true;
     }
 
     function getTagSubscriptions($offset=0, $limit=null, $since_id=0, $max_id=0)
@@ -585,10 +641,8 @@ class Profile extends Memcached_DataObject
 
         $sub = new Subscription();
         $sub->subscribed = $this->id;
-
+        $sub->whereAdd('subscriber != subscribed');
         $cnt = (int) $sub->count('distinct subscriber');
-
-        $cnt = ($cnt > 0) ? $cnt - 1 : $cnt;
 
         if (!empty($c)) {
             $c->set(common_cache_key('profile:subscriber_count:'.$this->id), $cnt);
@@ -855,14 +909,18 @@ class Profile extends Memcached_DataObject
                                             'role' => $name));
 
         if (empty($role)) {
-            throw new Exception('Cannot revoke role "'.$name.'" for user #'.$this->id.'; does not exist.');
+            // TRANS: Exception thrown when trying to revoke an existing role for a user that does not exist.
+            // TRANS: %1$s is the role name, %2$s is the user ID (number).
+            throw new Exception(sprintf(_('Cannot revoke role "%1$s" for user #%2$d; does not exist.'),$name, $this->id));
         }
 
         $result = $role->delete();
 
         if (!$result) {
             common_log_db_error($role, 'DELETE', __FILE__);
-            throw new Exception('Cannot revoke role "'.$name.'" for user #'.$this->id.'; database error.');
+            // TRANS: Exception thrown when trying to revoke a role for a user with a failing database query.
+            // TRANS: %1$s is the role name, %2$s is the user ID (number).
+            throw new Exception(sprintf(_('Cannot revoke role "%1$s" for user #%2$d; database error.'),$name, $this->id));
         }
 
         return true;
@@ -1062,5 +1120,21 @@ class Profile extends Memcached_DataObject
         }
 
         return $result;
+    }
+
+    function getAtomFeed()
+    {
+        $feed = null;
+
+        if (Event::handle('StartProfileGetAtomFeed', array($this, &$feed))) {
+            $user = User::staticGet('id', $this->id);
+            if (!empty($user)) {
+                $feed = common_local_url('ApiTimelineUser', array('id' => $user->id,
+                                                                  'format' => 'atom'));
+            }
+            Event::handle('EndProfileGetAtomFeed', array($this, $feed));
+        }
+
+        return $feed;
     }
 }

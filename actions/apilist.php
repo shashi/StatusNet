@@ -58,6 +58,7 @@ class ApiListAction extends ApiAuthAction
             $this->clientError(_('Not found'), 404, $this->format);
             return false;
         }
+
         return true;
     }
 

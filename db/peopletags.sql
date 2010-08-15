@@ -1,6 +1,7 @@
 /* this will eventually be merged with statusnet.sql */
 
 /* profile_list stores tag metadata. also, remote peopletags are stored here (similar to user_group) */
+
 create table profile_list (
     id integer auto_increment unique key comment 'unique identifier',
     tagger integer not null comment 'user making the tag' references profile (id), /* this may be a remote profile :) */
@@ -17,7 +18,10 @@ create table profile_list (
     subscriber_count smallint not null default 0 comment 'number of people subscribing',
 
     constraint primary key (tagger, tag),
-    index profile_tag_tag_idx (tag)
+    index profile_list_tag_idx (tag),
+    index profile_list_tagged_count_idx (tagged_count),
+    index profile_list_modified_idx (modified),
+    index profile_list_subscriber_count_idx (subscriber_count)
 ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_bin;
 
 /* populate metadata use tag itself as the

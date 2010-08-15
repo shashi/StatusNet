@@ -355,11 +355,12 @@ class User extends Memcached_DataObject
                                __FILE__);
                 } else {
                     $notice = Notice::saveNew($welcomeuser->id,
+                                              // TRANS: Notice given on user registration.
+                                              // TRANS: %1$s is the sitename, $2$s is the registering user's nickname.
                                               sprintf(_('Welcome to %1$s, @%2$s!'),
                                                       common_config('site', 'name'),
                                                       $user->nickname),
                                               'system');
-
                 }
             }
 
@@ -370,7 +371,6 @@ class User extends Memcached_DataObject
     }
 
     // Things we do when the email changes
-
     function emailChanged()
     {
 
@@ -502,12 +502,12 @@ class User extends Memcached_DataObject
 
     function getSelfTags()
     {
-        return Profile_tag::getTags($this->id, $this->id);
+        return Profile_tag::getTagsArray($this->id, $this->id, $this->id);
     }
 
-    function setSelfTags($newtags)
+    function setSelfTags($newtags, $privacy)
     {
-        return Profile_tag::setTags($this->id, $this->id, $newtags);
+        return Profile_tag::setTags($this->id, $this->id, $newtags, $privacy);
     }
 
     function block($other)
@@ -519,7 +519,7 @@ class User extends Memcached_DataObject
         if ($this->id == $other->id) {
             common_log(LOG_WARNING,
                 sprintf(
-                    "Profile ID %d (%s) tried to block his or herself.",
+                    "Profile ID %d (%s) tried to block themself.",
                     $this->id,
                     $this->nickname
                 )

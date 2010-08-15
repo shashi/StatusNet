@@ -242,16 +242,23 @@ class ProfilesettingsAction extends AccountSettingsAction
                 return;
             }
 
-            if ($tagstring) {
-                $tags = array_map('common_canonical_tag', preg_split('/[\s,]+/', $tagstring));
-            } else {
-                $tags = array();
-            }
 
-            foreach ($tags as $tag) {
-                if (!common_valid_profile_tag($tag)) {
-                    $this->showForm(sprintf(_('Invalid tag: "%s"'), $tag));
-                    return;
+            $tags = array();
+            $tag_priv = array();
+            if (is_string($tagstring) && strlen($tagstring) > 0) {
+
+                $tags = preg_split('/[\s,]+/', $tagstring);
+
+                foreach ($tags as &$tag) {
+                    $private = @$tag[0] === '.';
+
+                    $tag = common_canonical_tag($tag);
+                    if (!common_valid_profile_tag($tag)) {
+                        $this->showForm(sprintf(_('Invalid tag: "%s"'), $tag));
+                        return;
+                    }
+
+                    $tag_priv[$tag] = $private;
                 }
             }
 
@@ -377,7 +384,7 @@ class ProfilesettingsAction extends AccountSettingsAction
             }
 
             // Set the user tags
-            $result = $user->setSelfTags($tags);
+            $result = $user->setSelfTags($tags, $tag_priv);
 
             if (!$result) {
                 $this->serverError(_('Couldn\'t save tags.'));

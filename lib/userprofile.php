@@ -210,7 +210,7 @@ class UserProfile extends Widget
 
         if ($cur) {
             // don't show self-tags again
-            if ($cur->id != $this->profile->id) {
+            if ($cur->id != $this->profile->id && $cur->getProfile()->canTag($this->profile)) {
                 $tags = new PeopletagsWidget($this->out, $cur, $this->profile);
                 $tags->show();
             }

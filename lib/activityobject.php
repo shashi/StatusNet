@@ -172,6 +172,10 @@ class ActivityObject
             );
 
         }
+        if ($this->type == self::_LIST) {
+            $owner = ActivityUtils::child($this->element, Activity::AUTHOR, Activity::SPEC);
+            $this->owner = new ActivityObject($owner);
+        }
     }
 
     private function _fromAuthor($element)
@@ -485,7 +489,7 @@ class ActivityObject
         $object->id      = $ptag->getUri();
         $object->title   = $ptag->tag;
         $object->summary = $ptag->description;
-        $object->link    = $ptag->getUri();
+        $object->link    = $ptag->homeUrl();
         $object->owner   = Profile::staticGet('id', $ptag->tagger);
 
         return $object;
