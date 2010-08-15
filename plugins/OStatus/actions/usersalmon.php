@@ -178,13 +178,13 @@ class UsersalmonAction extends SalmonAction
 
     function handleTag()
     {
-        if ($this->act->target->type == ActivityObject::_LIST) {
-            if ($this->act->objects[0]->type != ActivityObject::PERSON) {
+        if ($this->activity->target->type == ActivityObject::_LIST) {
+            if ($this->activity->objects[0]->type != ActivityObject::PERSON) {
                 throw new ClientException("Not a person object");
                 return false;
             }
             // this is a peopletag
-            $tagged = User::staticGet('uri', $this->act->objects[0]->id);
+            $tagged = User::staticGet('uri', $this->activity->objects[0]->id);
 
             if (empty($tagged)) {
                 throw new ClientException("Unidentified profile being tagged");
@@ -196,7 +196,7 @@ class UsersalmonAction extends SalmonAction
 
             // save the list
             $tagger = $this->ensureProfile();
-            $list   = Ostatus_profile::ensureActivityObjectProfile($this->act->target);
+            $list   = Ostatus_profile::ensureActivityObjectProfile($this->activity->target);
 
             $ptag = $list->localPeopletag();
             $result = Profile_tag::setTag($ptag->tagger, $tagged->id, $ptag->tag);
@@ -208,13 +208,13 @@ class UsersalmonAction extends SalmonAction
 
     function handleUntag()
     {
-        if ($this->act->target->type == ActivityObject::_LIST) {
-            if ($this->act->objects[0]->type != ActivityObject::PERSON) {
+        if ($this->activity->target->type == ActivityObject::_LIST) {
+            if ($this->activity->objects[0]->type != ActivityObject::PERSON) {
                 throw new ClientException("Not a person object");
                 return false;
             }
             // this is a peopletag
-            $tagged = User::staticGet('uri', $this->act->objects[0]->id);
+            $tagged = User::staticGet('uri', $this->activity->objects[0]->id);
 
             if (empty($tagged)) {
                 throw new ClientException("Unidentified profile being untagged");
@@ -226,7 +226,7 @@ class UsersalmonAction extends SalmonAction
 
             // save the list
             $tagger = $this->ensureProfile();
-            $list   = Ostatus_profile::ensureActivityObjectProfile($this->act->target);
+            $list   = Ostatus_profile::ensureActivityObjectProfile($this->activity->target);
 
             $ptag = $list->localPeopletag();
             $result = Profile_tag::unTag($ptag->tagger, $tagged->id, $ptag->tag);
