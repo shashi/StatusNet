@@ -444,7 +444,7 @@ class Profile extends Memcached_DataObject
             $lists->limit($offset, $limit);
         }
 
-        $lists->orderBy('"cursor" DESC');
+        $lists->orderBy('profile_tag.modified DESC');
         $lists->find();
 
         return $lists;

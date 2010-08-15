@@ -24,6 +24,8 @@
 
 if (!defined('STATUSNET') && !defined('LACONICA')) { exit(1); }
 
+require_once INSTALLDIR . '/lib/peopletaglist.php';
+
 /**
  * Key UI methods:
  *
@@ -43,7 +45,7 @@ class OStatusPeopletagAction extends OStatusSubAction
 
     function validateRemoteProfile()
     {
-        if (!$this->oprofile->isGroup()) {
+        if (!$this->oprofile->isPeopletag()) {
             // Send us to the user subscription form for conf
             $target = common_local_url('ostatussub', array(), array('profile' => $this->profile_uri));
             common_redirect($target, 303);
@@ -56,10 +58,6 @@ class OStatusPeopletagAction extends OStatusSubAction
      */
     function showInputForm()
     {
-        $user = common_current_user();
-
-        $profile = $user->getProfile();
-
         $this->elementStart('form', array('method' => 'post',
                                           'id' => 'form_ostatus_sub',
                                           'class' => 'form_settings',
@@ -72,9 +70,9 @@ class OStatusPeopletagAction extends OStatusSubAction
         $this->elementStart('ul', 'form_data');
         $this->elementStart('li');
         $this->input('profile',
-                     _m('Join group'),
+                     _m('Subscribe to people tag'),
                      $this->profile_uri,
-                     _m("OStatus group's address, like http://example.net/group/nickname"));
+                     _m("Address of the OStatus people tag, like http://example.net/user/all/tag"));
         $this->elementEnd('li');
         $this->elementEnd('ul');
 
@@ -86,37 +84,44 @@ class OStatusPeopletagAction extends OStatusSubAction
     }
 
     /**
-     * Show a preview for a remote group's profile
+     * Show a preview for a remote peopletag's profile
      * @return boolean true if we're ok to try joining
      */
     function preview()
     {
         $oprofile = $this->oprofile;
-        $group = $oprofile->localGroup();
+        $ptag = $oprofile->localPeopletag();
 
         $cur = common_current_user();
-        if ($cur->isMember($group)) {
+        if ($ptag->hasSubscriber($cur->id)) {
             $this->element('div', array('class' => 'error'),
-                           _m("You are already a member of this group."));
+                           _m("You are already subscribed to this peopletag."));
             $ok = false;
         } else {
             $ok = true;
         }
 
-        $this->showEntity($group,
-                          $group->getProfileUrl(),
-                          $group->homepage_logo,
-                          $group->description);
+        $this->showEntity($ptag);
         return $ok;
     }
 
+    function showEntity($ptag)
+    {
+        $this->elementStart('div', 'peopletag');
+        $widget = new PeopletagListItem($ptag, common_current_user(), $this);
+        $widget->showCreator();
+        $widget->showTag();
+        $widget->showDescription();
+        $this->elementEnd('div');
+    }
+
     /**
-     * Redirect on successful remote group join
+     * Redirect on successful remote people tag subscription
      */
     function success()
     {
         $cur = common_current_user();
-        $url = common_local_url('usergroups', array('nickname' => $cur->nickname));
+        $url = common_local_url('peopletagsubscriptions', array('nickname' => $cur->nickname));
         common_redirect($url, 303);
     }
 
@@ -129,25 +134,18 @@ class OStatusPeopletagAction extends OStatusSubAction
     function saveFeed()
     {
         $user = common_current_user();
-        $group = $this->oprofile->localGroup();
-        if ($user->isMember($group)) {
+        $ptag = $this->oprofile->localPeopletag();
+        if ($ptag->hasSubscriber($user->id)) {
             // TRANS: OStatus remote group subscription dialog error.
-            $this->showForm(_m('Already a member!'));
+            $this->showForm(_m('Already subscribed!'));
             return;
         }
 
-        if (Event::handle('StartJoinGroup', array($group, $user))) {
-            $ok = Group_member::join($this->oprofile->group_id, $user->id);
-            if ($ok) {
-                Event::handle('EndJoinGroup', array($group, $user));
-                $this->success();
-            } else {
-                // TRANS: OStatus remote group subscription dialog error.
-                $this->showForm(_m('Remote group join failed!'));
-            }
-        } else {
-            // TRANS: OStatus remote group subscription dialog error.
-            $this->showForm(_m('Remote group join aborted!'));
+        try {
+            Profile_tag_subscription::add($ptag, $user);
+            $this->success();
+        } catch (Exception $e) {
+            $this->showForm($e->getMessage());
         }
     }
 
@@ -159,8 +157,8 @@ class OStatusPeopletagAction extends OStatusSubAction
 
     function title()
     {
-        // TRANS: Page title for OStatus remote group join form
-        return _m('Confirm joining remote group');
+        // TRANS: Page title for OStatus remote people tag subscription form
+        return _m('Confirm subscription to remote people tag');
     }
 
     /**
@@ -171,11 +169,11 @@ class OStatusPeopletagAction extends OStatusSubAction
 
     function getInstructions()
     {
-        return _m('You can subscribe to groups from other supported sites. Paste the group\'s profile URI below:');
+        return _m('You can subscribe to people tags from other supported sites. Paste the tag\'s profile URI below:');
     }
 
     function selfLink()
     {
-        return common_local_url('ostatusgroup');
+        return common_local_url('ostatuspeopletag');
     }
 }

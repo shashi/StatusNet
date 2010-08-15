@@ -118,7 +118,8 @@ class PeopletagAction extends Action
             $ptags->private = false;
             $ptags->orderBy('profile_list.modified DESC');
 
-            if ($offset+$limit <= PEOPLETAG_CACHE_WINDOW && !empty(common_memcache())) {
+            $c = common_memcache();
+            if ($offset+$limit <= PEOPLETAG_CACHE_WINDOW && !empty($c)) {
                 $ptags = Profile_list::getCached($ckey, $offset, $limit);
                 if ($ptags !== false) {
                     $ptags->limit(0, PEOPLETAG_CACHE_WINDOW);

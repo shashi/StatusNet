@@ -1591,22 +1591,19 @@ class ApiAction extends Action
                 $list = Profile_list::staticGet('id', $id);
 
                 // only if the list with the id belongs to the tagger
-                if(empty($list) || $list->tagger == $tagger->id) {
+                if(empty($list) || $list->tagger != $tagger->id) {
                     $list = null;
                 }
             }
-            $tag = common_canonical_tag($id);
-            $list = Profile_list::getByTaggerAndTag($tagger->id, $tag);
-
             if (empty($list)) {
-                return null;
+                $tag = common_canonical_tag($id);
+                $list = Profile_list::getByTaggerAndTag($tagger->id, $tag);
             }
 
-            if ($list->private) {
+            if (!empty($list) && $list->private) {
                 if ($this->auth_user->id == $list->tagger) {
                     return $list;
                 }
-                return false;
             } else {
                 return $list;
             }

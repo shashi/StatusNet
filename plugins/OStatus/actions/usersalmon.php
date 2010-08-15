@@ -179,7 +179,7 @@ class UsersalmonAction extends SalmonAction
     function handleTag()
     {
         if ($this->act->target->type == ActivityObject::_LIST) {
-            if ($this->act->objects[0] != ActivityObject::PERSON) {
+            if ($this->act->objects[0]->type != ActivityObject::PERSON) {
                 throw new ClientException("Not a person object");
                 return false;
             }
@@ -200,7 +200,6 @@ class UsersalmonAction extends SalmonAction
 
             $ptag = $list->localPeopletag();
             $result = Profile_tag::setTag($ptag->tagger, $tagged->id, $ptag->tag);
-
             if (!$result) {
                 throw new ClientException("The tag could not be saved.");
             }
@@ -210,7 +209,7 @@ class UsersalmonAction extends SalmonAction
     function handleUntag()
     {
         if ($this->act->target->type == ActivityObject::_LIST) {
-            if ($this->act->objects[0] != ActivityObject::PERSON) {
+            if ($this->act->objects[0]->type != ActivityObject::PERSON) {
                 throw new ClientException("Not a person object");
                 return false;
             }

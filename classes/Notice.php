@@ -410,7 +410,11 @@ class Notice extends Memcached_DataObject
             $notice->saveGroups();
         }
 
-        $notice->saveProfileTags();
+        if (isset($peopletags)) {
+            $notice->saveProfileTags($peopletags);
+        } else {
+            $notice->saveProfileTags();
+        }
 
         if (isset($urls)) {
             $notice->saveKnownUrls($urls);
@@ -1049,7 +1053,7 @@ class Notice extends Memcached_DataObject
      * record targets into profile_tag_inbox.
      * @return array of Profile_list objects
      */
-    function saveProfileTags()
+    function saveProfileTags($known=array())
     {
         // Don't save ptags for repeats, for now
 
@@ -1057,19 +1061,24 @@ class Notice extends Memcached_DataObject
             return array();
         }
 
-        $ptags = array();
+        if (is_array($known)) {
+            $ptags = $known;
+        } else {
+            $ptags = array();
+        }
+
         $ptag = new Profile_tag();
         $ptag->tagged = $this->profile_id;
 
         if($ptag->find()) {
             while($ptag->fetch()) {
-
-                $plist = Profile_list::pkeyGet(array('tagger' => $ptag->tagger,
-                            'tag'=> $ptag->tag));
-
-                $this->addToProfileTagInbox($plist);
+                $plist = Profile_list::getByTaggerAndTag($ptag->tagger, $ptag->tag);
                 $ptags[] = clone($plist);
             }
+        }
+
+        foreach ($ptags as $target) {
+            $this->addToProfileTagInbox($target);
         }
 
         return $ptags;

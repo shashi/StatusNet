@@ -105,7 +105,6 @@ class Profile_tag extends Memcached_DataObject
         $oldtags = self::getTagsArray($tagger, $tagged, $tagger);
 
         $ptag = new Profile_tag();
-        $ptag->query('BEGIN');
 
         # Delete stuff that's in old and not in new
 
@@ -123,7 +122,7 @@ class Profile_tag extends Memcached_DataObject
             $private = isset($privacy[$instag]) ? $privacy[$instag] : false;
             self::setTag($tagger, $tagged, $instag, null, $private);
         }
-        return $ptag->query('COMMIT');
+        return true;
     }
 
     # set a single tag
@@ -159,7 +158,11 @@ class Profile_tag extends Memcached_DataObject
                 return false;
             }
 
+            $plist = new Profile_list();
+            $plist->query('BEGIN');
+
             $profile_list = Profile_list::ensureTag($tagger, $tag, $desc, $private);
+
             if ($profile_list->taggedCount() >= common_config('peopletag', 'maxpeople')) {
                 throw new ClientException(sprintf(_('You already have %d or more people tagged %s ' .
                                                     'which is the maximum allowed number.' .
@@ -175,15 +178,23 @@ class Profile_tag extends Memcached_DataObject
             $newtag->tag = $tag;
 
             $result = $newtag->insert();
+
+
             if (!$result) {
                 common_log_db_error($newtag, 'INSERT', __FILE__);
                 return false;
             }
 
-            if(!Event::handle('EndTagProfile', array($newtag))) {
+            try {
+                $plist->query('COMMIT');
+                Event::handle('EndTagProfile', array($newtag));
+            } catch (Exception $e) {
                 $newtag->delete();
+                $profile_list->delete();
+                throw $e;
                 return false;
             }
+
             $profile_list->taggedCount(true);
             self::blowCaches($tagger, $tagged);
         }

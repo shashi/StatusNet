@@ -118,7 +118,7 @@ class SubscribepeopletagAction extends Action
             Profile_tag_subscription::add($this->peopletag, $cur);
         } catch (Exception $e) {
             $this->serverError(sprintf(_('Could not subscribe user %1$s to peopletag %2$s.'),
-                                       $cur->nickname, $this->peopletag->tag));
+                                       $cur->nickname, $this->peopletag->tag) . ' ' . $e->getMessage());
         }
 
         if ($this->boolean('ajax')) {

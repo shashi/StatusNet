@@ -834,7 +834,7 @@ class OStatusPlugin extends Plugin
                 throw new Exception(_m('Could not set up remote peopletag subscription.'));
             }
 
-            $sub = Profile::staticGet($user->id);
+            $sub = $user->getProfile();
             $tagger = Profile::staticGet($peopletag->tagger);
 
             $act = new Activity();
@@ -854,7 +854,7 @@ class OStatusPlugin extends Plugin
                                     $oprofile->getBestName(),
                                     $tagger->getBestName());
 
-            if ($oprofile->notifyActivity($act, $member)) {
+            if ($oprofile->notifyActivity($act, $sub)) {
                 return true;
             } else {
                 $oprofile->garbageCollect();
@@ -900,7 +900,7 @@ class OStatusPlugin extends Plugin
                                     $oprofile->getBestName(),
                                     $tagger->getBestName());
 
-            $oprofile->notifyActivity($act, $member);
+            $oprofile->notifyActivity($act, $user);
         }
     }
 
@@ -974,13 +974,18 @@ class OStatusPlugin extends Plugin
                                 $plist->getBestName());
 
         $act->actor  = ActivityObject::fromProfile($tagger);
-        $act->object = ActivityObject::fromProfile($tagged);
+        $act->objects = array(ActivityObject::fromProfile($tagged));
         $act->target = ActivityObject::fromPeopletag($plist);
 
         $oprofile->notifyActivity($act, $tagger);
 
         // initiate a PuSH subscription for the person being tagged
-        return $oprofile->subscribe();
+        if (!$oprofile->subscribe()) {
+            throw new Exception(sprintf(_('Could not complete subscription to remote '.
+                                          'profile\'s feed. Tag %s could not be saved.'), $ptag->tag));
+            return false;
+        }
+        return true;
     }
 
     function onEndUntagProfile($ptag)
@@ -1009,7 +1014,7 @@ class OStatusPlugin extends Plugin
                                 $plist->getBestName());
 
         $act->actor  = ActivityObject::fromProfile($tagger);
-        $act->object = ActivityObject::fromProfile($tagged);
+        $act->objects = array(ActivityObject::fromProfile($tagged));
         $act->target = ActivityObject::fromPeopletag($plist);
 
         $oprofile->notifyActivity($act, $tagger);

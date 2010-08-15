@@ -156,8 +156,8 @@ class ShowprofiletagAction extends Action
         return array(new Feed(Feed::RSS2,
                 common_local_url(
                     'ApiTimelineList', array(
-                        'user' => $this->tagger->nickname,
-                        'id' => $this->peopletag->tag,
+                        'user' => $this->tagger->id,
+                        'id' => $this->peopletag->id,
                         'format' => 'rss'
                     )
                 ),
@@ -166,8 +166,8 @@ class ShowprofiletagAction extends Action
             new Feed(Feed::ATOM,
                 common_local_url(
                     'ApiTimelineList', array(
-                        'user' => $this->tagger->nickname,
-                        'id' => $this->peopletag->tag,
+                        'user' => $this->tagger->id,
+                        'id' => $this->peopletag->id,
                         'format' => 'atom'
                     )
                 ),
@@ -263,7 +263,7 @@ class ShowprofiletagAction extends Action
             $title = '';
 
             $current = common_current_user();
-            if($this->peopletag->tagger == $current->id) {
+            if(!empty($current) && $this->peopletag->tagger == $current->id) {
                 $title =  sprintf(_('People tagged %s by you'), $this->peopletag->tag);
             } else {
                 $title = sprintf(_('People tagged %1$s by %2$s'),

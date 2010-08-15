@@ -288,7 +288,7 @@ class Ostatus_profile extends Memcached_DataObject
             $members = $this->localGroup()->getMembers(0, 1);
             $count = $members->N;
         } else if ($this->isPeopletag()) {
-            $subscribers = $this->localProfile()->getSubscribers(0, 1);
+            $subscribers = $this->localPeopletag()->getSubscribers(0, 1);
             $count = $subscribers->N;
         } else {
             $profile = $this->localProfile();
@@ -637,6 +637,7 @@ class Ostatus_profile extends Memcached_DataObject
                         'rendered' => $rendered,
                         'replies' => array(),
                         'groups' => array(),
+                        'peopletags' => array(),
                         'tags' => array(),
                         'urls' => array());
 
@@ -671,6 +672,10 @@ class Ostatus_profile extends Memcached_DataObject
                     $options['location_id'] = $location->location_id;
                 }
             }
+        }
+
+        if ($this->isPeopletag()) {
+            $options['peopletags'][] = $this->localPeopletag();
         }
 
         // Atom categories <-> hashtags
@@ -1499,8 +1504,6 @@ class Ostatus_profile extends Memcached_DataObject
         $orig = clone($tag);
 
         $tag->tag = $object->title;
-
-        self::ensureActivityObjectProfile($object->owner);
 
         if (!empty($object->link)) {
             $tag->mainpage = $object->link;
