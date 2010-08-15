@@ -195,6 +195,7 @@ button.close,
 .form_peopletag_unsubscribe input.submit,
 .form_remote_authorize input.submit,
 .entity_subscribe a,
+.entity_tag a,
 .entity_moderation p,
 .entity_sandbox input.submit,
 .entity_silence input.submit,
@@ -330,7 +331,8 @@ background-position:5px -1246px;
 .form_peopletag_subscribe input.submit,
 .form_remote_authorize input.submit,
 .form_user_add_peopletag input.submit,
-.entity_subscribe a {
+.entity_subscribe a,
+.entity_tag a {
 background-position:5px -1181px;
 }
 
