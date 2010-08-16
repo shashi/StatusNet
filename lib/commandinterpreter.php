@@ -147,6 +147,28 @@ class CommandInterpreter
             } else {
                 return new UnsubCommand($user, $other);
             }
+         case 'list':
+         case 'tag':
+            if (!$arg) {
+                return null;
+            }
+            list($other, $tags) = $this->split_arg($arg);
+            if (!$tags) {
+                return null;
+            } else {
+                return new TagCommand($user, $other, $tags);
+            }
+         case 'unlist':
+         case 'untag':
+            if (!$arg) {
+                return null;
+            }
+            list($other, $tags) = $this->split_arg($arg);
+            if (!$tags) {
+                return null;
+            } else {
+                return new UntagCommand($user, $other, $tags);
+            }
          case 'get':
          case 'last':
             if (!$arg) {
