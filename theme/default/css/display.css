@@ -214,7 +214,7 @@ button.minimize,
 #realtime_pause,
 #realtime_popup,
 .peopletags_edit_button,
-.peopletag.mode-private .privacy_mode {
+.mode-private .privacy_mode {
 background-image:url(../../base/images/icons/icons-01.gif);
 background-repeat:no-repeat;
 background-color:transparent;
@@ -353,10 +353,10 @@ background-position: 5px -719px;
 .peopletags_edit_button {
 background-position: 0px -724px;
 }
-.entity_tags .mode-private {
+.entity_tags li.mode-private {
 color: #829D25;
 }
-.peopletag.mode-private .privacy_mode {
+.mode-private .privacy_mode {
 background-position: 0px -1978px;
 }
 
@@ -554,6 +554,20 @@ background-position:90% 47%;
 }
 .pagination .nav_prev a.processing {
 background-position:10% 47%;
+}
+
+.tagInputDiv {
+background-color: white;
+border: 1px solid lightgray;
+}
+
+.tagInputDiv .mode-public .privacy_mode {
+display:none;
+}
+
+.tagInputSel {
+background-color: gray;
+color:white;
 }
 
 }/*end of @media screen, projection, tv*/

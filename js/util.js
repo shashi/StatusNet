@@ -880,16 +880,20 @@ var SN = { // StatusNet
         },
 
         PeopletagAutocomplete: function() {
-            $('.form_tag_user #tags').autocomplete(SN.C.PtagACData, {
-                multiple: true,
-                multipleSeparator: " ",
-                formatItem: function(row) {
-                    return '<span class="mode-' + row.mode + '">' + row.tag + '</span>';
-                },
-                formatResult: function(row) {
-                    return row.tag;
-                },
-                highlight: false
+            $('.form_tag_user #tags').tagInput({
+                tags: SN.C.PtagACData,
+                tagSeparator: " ",
+                animate: false,
+                formatLine: function (i, e, search, matches) {
+                  var tag = "<b>" + e.tag.substring(0, search.length) + "</b>" + e.tag.substring(search.length);
+
+                  var line = $("<div/>").addClass('mode-' + e.mode);
+                    line.append($("<div class='tagInputLineTag'>" + tag
+                        + " <em class='privacy_mode'>" + e.mode + "</em></div>"));
+                  if (e.freq)
+                    line.append("<div class='tagInputLineFreq'>" + e.freq + "</div>");
+                  return line;
+                }
             });
         },
 
@@ -898,15 +902,15 @@ var SN = { // StatusNet
 
             $('.peopletags_edit_button').live('click', function() {
                 var form = $(this).parents('dd').eq(0).find('form');
-                $(this).parents('ul').eq(0).fadeOut(200, function() {form.fadeIn(200).find('input#tags').focus()});
                 // We can buy time from the above animation
                 if (typeof SN.C.PtagACData === 'undefined') {
                     $.getJSON(_peopletagAC + '?token=' + $('#token').val(), function(data) {
-                        alert(data);
                         SN.C.PtagACData = data;
-                        _loadAutocomplete(SN.Init.PeopletagAutocomplete);
+                        _loadTagInput(SN.Init.PeopletagAutocomplete);
                     });
-                } else { _loadAutocomplete(SN.Init.PeopletagAutocomplete); }
+                } else { _loadTagInput(SN.Init.PeopletagAutocomplete); }
+
+                $(this).parents('ul').eq(0).fadeOut(200, function() {form.fadeIn(200).find('input#tags')});
             })
 
             $('.user_profile_tags form .submit').live('click', function() {

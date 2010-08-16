@@ -672,7 +672,7 @@ min-height:123px;
 float:left;
 margin-bottom:18px;
 margin-left:0;
-overflow:hidden;
+overflow:visible;
 }
 .entity_profile dt,
 #entity_statistics dt {
@@ -1392,7 +1392,7 @@ position:relative;
 padding-left:16px;
 }
 .notice .attachment.more,
-.peopletag.mode-private .privacy_mode {
+.mode-private .privacy_mode {
 text-indent:-9999px;
 width:16px;
 height:16px;
@@ -1811,53 +1811,32 @@ width:auto;
 #bookmarklet #wrap {
 min-width:0;
 }
-.ac_results {
-	padding: 0px;
-	border: 1px solid black;
-	background-color: white;
-	overflow: hidden;
-	z-index: 99999;
+
+/* tag autocomplete */
+
+.tagInputDiv {
+display: none;
+position: absolute;
+overflow: auto;
+margin-top:-1px;
+z-index: 99;
 }
 
-.ac_results ul {
-	width: 100%;
-	list-style-position: outside;
-	list-style: none;
-	padding: 0;
-	margin: 0;
+.tagInputLine {
+font-weight: normal;
+padding:4px;
 }
 
-.ac_results li {
-	margin: 0px;
-	padding: 2px 5px;
-	cursor: default;
-	display: block;
-	/* 
-	if width will be 100% horizontal scrollbar will apear 
-	when scroll mode will be used
-	*/
-	/*width: 100%;*/
-	font: menu;
-	font-size: 12px;
-	/* 
-	it is very important, if line-height not setted or setted 
-	in relative units scroll will be broken in firefox
-	*/
-	line-height: 16px;
-	overflow: hidden;
+.tagInputLineTag {
+min-width: 150px;
+display: inline-block;
 }
 
-.ac_loading {
-	background: white url('indicator.gif') right center no-repeat;
-}
-
-.ac_odd {
-	background-color: #eee;
-}
-
-.ac_over {
-	background-color: #0A246A;
-	color: white;
+.tagInputLineFreq {
+min-width: 50px;
+text-align: right;
+display: inline-block;
+float:right;
 }
 
 }/*end of @media screen, projection, tv*/

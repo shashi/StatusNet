@@ -87,11 +87,6 @@ class Profile_list extends Memcached_DataObject
         return $url;
     }
 
-    function getTagger()
-    {
-        return new Profile('id', $this->tagger);
-    }
-
     function getNotices($offset, $limit, $since_id=null, $max_id=null)
     {
         $ids = Notice::stream(array($this, '_streamDirect'),

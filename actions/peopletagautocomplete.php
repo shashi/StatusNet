@@ -89,12 +89,15 @@ class PeopletagautocompleteAction extends Action
             $arr = array();
             $arr['tag'] = $tags->tag;
             $arr['mode'] = $tags->private ? 'private' : 'public';
-            $arr['url'] = $tags->homeUrl();
+            // $arr['url'] = $tags->homeUrl();
+            $arr['freq'] = $tags->taggedCount();
 
             $tags_array[] = $arr;
         }
 
         $tags->free();
+
+        //common_log(LOG_DEBUG, 'Autocomplete data: ' . json_encode($tags_array));
         print(json_encode($tags_array));
         exit(0);
     }
