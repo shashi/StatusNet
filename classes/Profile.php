@@ -579,6 +579,31 @@ class Profile extends Memcached_DataObject
         return $profile;
     }
 
+    function getTaggedSubscribers($tag)
+    {
+        $qry =
+          'SELECT profile.* ' .
+          'FROM profile JOIN (subscription, profile_tag, profile_list) ' .
+          'ON profile.id = subscription.subscriber ' .
+          'AND profile.id = profile_tag.tagged ' .
+          'AND profile_tag.tagger = profile_list.tagger AND profile_tag.tag = profile_list.tag ' .
+          'WHERE subscription.subscribed = %d ' .
+          'AND subscription.subscribed != subscription.subscriber ' .
+          'AND profile_tag.tagger = %d AND profile_tag.tag = "%s" ' .
+          'AND profile_list.private = false ' .
+          'ORDER BY subscription.created DESC';
+
+        $profile = new Profile();
+        $tagged = array();
+
+        $cnt = $profile->query(sprintf($qry, $this->id, $this->id, $tag));
+
+        while ($profile->fetch()) {
+            $tagged[] = clone($profile);
+        }
+        return $tagged;
+    }
+
     function getApplications($offset = 0, $limit = null)
     {
         $qry =

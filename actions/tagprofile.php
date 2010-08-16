@@ -31,8 +31,10 @@ class TagprofileAction extends Action
     {
         parent::prepare($args);
         if (!common_logged_in()) {
-            $this->clientError(_('Not logged in.'), 403);
-            return false;
+            common_set_returnto($_SERVER['REQUEST_URI']);
+            if (Event::handle('RedirectToLogin', array($this, null))) {
+                common_redirect(common_local_url('login'), 303);
+            }
         }
 
         $id = $this->trimmed('id');
@@ -57,10 +59,13 @@ class TagprofileAction extends Action
     function handle($args)
     {
         parent::handle($args);
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $this->saveTags();
-        } else {
-            $this->showForm();
+        if (Event::handle('StartTagProfileAction', array($this, $this->profile))) {
+            if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+                $this->saveTags();
+            } else {
+                $this->showForm();
+            }
+            Event::handle('EndTagProfileAction', array($this, $this->profile));
         }
     }
 

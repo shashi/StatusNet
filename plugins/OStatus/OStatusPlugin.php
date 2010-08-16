@@ -58,6 +58,10 @@ class OStatusPlugin extends Plugin
                     array('action' => 'ownerxrd'));
         $m->connect('main/ostatus',
                     array('action' => 'ostatusinit'));
+        $m->connect('main/ostatustag',
+                    array('action' => 'ostatustag'));
+        $m->connect('main/ostatustag?nickname=:nickname',
+                    array('action' => 'ostatustag'), array('nickname' => '[A-Za-z0-9_-]+'));
         $m->connect('main/ostatus?nickname=:nickname',
                   array('action' => 'ostatusinit'), array('nickname' => '[A-Za-z0-9_-]+'));
         $m->connect('main/ostatus?group=:group',
@@ -229,20 +233,7 @@ class OStatusPlugin extends Plugin
      */
     function onStartProfileRemoteSubscribe($output, $profile)
     {
-        $cur = common_current_user();
-
-        if (empty($cur)) {
-            // Add an OStatus subscribe
-            $output->elementStart('li', 'entity_subscribe');
-            $url = common_local_url('ostatusinit',
-                                    array('nickname' => $profile->nickname));
-            $output->element('a', array('href' => $url,
-                                        'class' => 'entity_remote_subscribe'),
-                                _m('Subscribe'));
-
-            $output->elementEnd('li');
-        }
-
+        $this->onStartProfileListItemActionElements($output, $profile);
         return false;
     }
 
@@ -308,7 +299,7 @@ class OStatusPlugin extends Plugin
         $action->elementEnd('form');
     }
 
-    function onStartSavePeopletags($action, $profile)
+    function onStartTagProfileAction($action, $profile)
     {
         $err = null;
         $uri = $action->trimmed('uri');
@@ -957,6 +948,10 @@ class OStatusPlugin extends Plugin
         }
 
         $plist = $ptag->getMeta();
+        if ($plist->private) {
+            return true;
+        }
+
         $act = new Activity();
 
         $tagger = $plist->getTagger();
@@ -997,6 +992,10 @@ class OStatusPlugin extends Plugin
         }
 
         $plist = $ptag->getMeta();
+        if ($plist->private) {
+            return true;
+        }
+
         $act = new Activity();
 
         $tagger = $plist->getTagger();
@@ -1185,7 +1184,7 @@ class OStatusPlugin extends Plugin
         return true;
     }
 
-    function onStartProfileListItemActionElements($item)
+    function onStartProfileListItemActionElements($item, $profile=null)
     {
         if (!common_logged_in()) {
 
@@ -1193,7 +1192,12 @@ class OStatusPlugin extends Plugin
 
             if (!empty($profileUser)) {
 
-                $output = $item->out;
+                if ($item instanceof Action) {
+                    $output = $item;
+                    $profile = $item->profile;
+                } else {
+                    $output = $item->out;
+                }
 
                 // Add an OStatus subscribe
                 $output->elementStart('li', 'entity_subscribe');
@@ -1202,6 +1206,14 @@ class OStatusPlugin extends Plugin
                 $output->element('a', array('href' => $url,
                                             'class' => 'entity_remote_subscribe'),
                                  _m('Subscribe'));
+                $output->elementEnd('li');
+
+                $output->elementStart('li', 'entity_tag');
+                $url = common_local_url('ostatustag',
+                                        array('nickname' => $profileUser->nickname));
+                $output->element('a', array('href' => $url,
+                                            'class' => 'entity_remote_tag'),
+                                 _m('Tag'));
                 $output->elementEnd('li');
             }
         }

@@ -705,6 +705,7 @@ clear:both;
 }
 
 .peopletags_edit_button {
+cursor:pointer;
 border:0;
 padding:0;
 width:16px;

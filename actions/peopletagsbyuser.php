@@ -216,6 +216,9 @@ class PeopletagsbyuserAction extends OwnerDesignAction
         $pl = new PeopletagList($this->tags, $this);
         $cnt = $pl->show();
 
+        if ($cnt == 0) {
+            $this->showEmptyListMessage();
+        }
         $this->pagination($this->page > 1, $cnt > PEOPLETAGS_PER_PAGE,
                           $this->page, 'peopletagsbyuser', $this->getSelfUrlArgs());
     }
@@ -237,6 +240,14 @@ class PeopletagsbyuserAction extends OwnerDesignAction
     {
         $user = common_current_user();
         return !empty($user) && $user->id == $this->tagger->id;
+    }
+
+    function showEmptyListMessage()
+    {
+        $message = sprintf(_('%s has not created any [people tags](%%%%doc.tags%%%%) yet.'), $this->tagger->nickname);
+        $this->elementStart('div', 'guide');
+        $this->raw(common_markup_to_html($message));
+        $this->elementEnd('div');
     }
 
     function showSections()
