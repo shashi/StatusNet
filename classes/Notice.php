@@ -121,16 +121,19 @@ class Notice extends Memcached_DataObject
             $deleted->insert();
         }
 
-        // Clear related records
+        if (Event::handle('NoticeDeleteRelated', array($this))) {
 
-        $this->clearReplies();
-        $this->clearRepeats();
-        $this->clearFaves();
-        $this->clearTags();
-        $this->clearGroupInboxes();
+            // Clear related records
 
-        // NOTE: we don't clear inboxes
-        // NOTE: we don't clear queue items
+            $this->clearReplies();
+            $this->clearRepeats();
+            $this->clearFaves();
+            $this->clearTags();
+            $this->clearGroupInboxes();
+
+            // NOTE: we don't clear inboxes
+            // NOTE: we don't clear queue items
+        }
 
         $result = parent::delete();
 
@@ -594,7 +597,7 @@ class Notice extends Memcached_DataObject
 
     function getStreamByIds($ids)
     {
-        $cache = common_memcache();
+        $cache = Cache::instance();
 
         if (!empty($cache)) {
             $notices = array();
@@ -762,7 +765,7 @@ class Notice extends Memcached_DataObject
         $c = self::memcache();
 
         if (!empty($c)) {
-            $ni = $c->get(common_cache_key('notice:who_gets:'.$this->id));
+            $ni = $c->get(Cache::key('notice:who_gets:'.$this->id));
             if ($ni !== false) {
                 return $ni;
             }
@@ -827,7 +830,7 @@ class Notice extends Memcached_DataObject
 
         if (!empty($c)) {
             // XXX: pack this data better
-            $c->set(common_cache_key('notice:who_gets:'.$this->id), $ni);
+            $c->set(Cache::key('notice:who_gets:'.$this->id), $ni);
         }
 
         return $ni;
@@ -1131,25 +1134,31 @@ class Notice extends Memcached_DataObject
         if (empty($uris)) {
             return;
         }
+
         $sender = Profile::staticGet($this->profile_id);
 
         foreach (array_unique($uris) as $uri) {
 
-            $user = User::staticGet('uri', $uri);
+            $profile = Profile::fromURI($uri);
 
-            if (!empty($user)) {
-                if ($user->hasBlocked($sender)) {
-                    continue;
-                }
-
-                $reply = new Reply();
-
-                $reply->notice_id  = $this->id;
-                $reply->profile_id = $user->id;
-                common_log(LOG_INFO, __METHOD__ . ": saving reply: notice $this->id to profile $user->id");
-
-                $id = $reply->insert();
+            if (empty($profile)) {
+                common_log(LOG_WARNING, "Unable to determine profile for URI '$uri'");
+                continue;
             }
+
+            if ($profile->hasBlocked($sender)) {
+                common_log(LOG_INFO, "Not saving reply to profile {$profile->id} ($uri) from sender {$sender->id} because of a block.");
+                continue;
+            }
+
+            $reply = new Reply();
+
+            $reply->notice_id  = $this->id;
+            $reply->profile_id = $profile->id;
+
+            common_log(LOG_INFO, __METHOD__ . ": saving reply: notice $this->id to profile $profile->id");
+
+            $id = $reply->insert();
         }
 
         return;
@@ -1691,7 +1700,7 @@ class Notice extends Memcached_DataObject
 
     function stream($fn, $args, $cachekey, $offset=0, $limit=20, $since_id=0, $max_id=0)
     {
-        $cache = common_memcache();
+        $cache = Cache::instance();
 
         if (empty($cache) ||
             $since_id != 0 || $max_id != 0 ||
@@ -1701,7 +1710,7 @@ class Notice extends Memcached_DataObject
                                                                       $max_id)));
         }
 
-        $idkey = common_cache_key($cachekey);
+        $idkey = Cache::key($cachekey);
 
         $idstr = $cache->get($idkey);
 
@@ -1883,17 +1892,17 @@ class Notice extends Memcached_DataObject
 
     function repeatStream($limit=100)
     {
-        $cache = common_memcache();
+        $cache = Cache::instance();
 
         if (empty($cache)) {
             $ids = $this->_repeatStreamDirect($limit);
         } else {
-            $idstr = $cache->get(common_cache_key('notice:repeats:'.$this->id));
+            $idstr = $cache->get(Cache::key('notice:repeats:'.$this->id));
             if ($idstr !== false) {
                 $ids = explode(',', $idstr);
             } else {
                 $ids = $this->_repeatStreamDirect(100);
-                $cache->set(common_cache_key('notice:repeats:'.$this->id), implode(',', $ids));
+                $cache->set(Cache::key('notice:repeats:'.$this->id), implode(',', $ids));
             }
             if ($limit < 100) {
                 // We do a max of 100, so slice down to limit
@@ -2047,10 +2056,10 @@ class Notice extends Memcached_DataObject
 
         if ($tag->find()) {
             while ($tag->fetch()) {
-                self::blow('profile:notice_ids_tagged:%d:%s', $this->profile_id, common_keyize($tag->tag));
-                self::blow('profile:notice_ids_tagged:%d:%s;last', $this->profile_id, common_keyize($tag->tag));
-                self::blow('notice_tag:notice_ids:%s', common_keyize($tag->tag));
-                self::blow('notice_tag:notice_ids:%s;last', common_keyize($tag->tag));
+                self::blow('profile:notice_ids_tagged:%d:%s', $this->profile_id, Cache::keyize($tag->tag));
+                self::blow('profile:notice_ids_tagged:%d:%s;last', $this->profile_id, Cache::keyize($tag->tag));
+                self::blow('notice_tag:notice_ids:%s', Cache::keyize($tag->tag));
+                self::blow('notice_tag:notice_ids:%s;last', Cache::keyize($tag->tag));
                 $tag->delete();
             }
         }

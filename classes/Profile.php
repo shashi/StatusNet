@@ -631,10 +631,10 @@ class Profile extends Memcached_DataObject
 
     function subscriptionCount()
     {
-        $c = common_memcache();
+        $c = Cache::instance();
 
         if (!empty($c)) {
-            $cnt = $c->get(common_cache_key('profile:subscription_count:'.$this->id));
+            $cnt = $c->get(Cache::key('profile:subscription_count:'.$this->id));
             if (is_integer($cnt)) {
                 return (int) $cnt;
             }
@@ -648,7 +648,7 @@ class Profile extends Memcached_DataObject
         $cnt = ($cnt > 0) ? $cnt - 1 : $cnt;
 
         if (!empty($c)) {
-            $c->set(common_cache_key('profile:subscription_count:'.$this->id), $cnt);
+            $c->set(Cache::key('profile:subscription_count:'.$this->id), $cnt);
         }
 
         return $cnt;
@@ -656,9 +656,9 @@ class Profile extends Memcached_DataObject
 
     function subscriberCount()
     {
-        $c = common_memcache();
+        $c = Cache::instance();
         if (!empty($c)) {
-            $cnt = $c->get(common_cache_key('profile:subscriber_count:'.$this->id));
+            $cnt = $c->get(Cache::key('profile:subscriber_count:'.$this->id));
             if (is_integer($cnt)) {
                 return (int) $cnt;
             }
@@ -670,7 +670,7 @@ class Profile extends Memcached_DataObject
         $cnt = (int) $sub->count('distinct subscriber');
 
         if (!empty($c)) {
-            $c->set(common_cache_key('profile:subscriber_count:'.$this->id), $cnt);
+            $c->set(Cache::key('profile:subscriber_count:'.$this->id), $cnt);
         }
 
         return $cnt;
@@ -678,9 +678,9 @@ class Profile extends Memcached_DataObject
 
     function faveCount()
     {
-        $c = common_memcache();
+        $c = Cache::instance();
         if (!empty($c)) {
-            $cnt = $c->get(common_cache_key('profile:fave_count:'.$this->id));
+            $cnt = $c->get(Cache::key('profile:fave_count:'.$this->id));
             if (is_integer($cnt)) {
                 return (int) $cnt;
             }
@@ -691,7 +691,7 @@ class Profile extends Memcached_DataObject
         $cnt = (int) $faves->count('distinct notice_id');
 
         if (!empty($c)) {
-            $c->set(common_cache_key('profile:fave_count:'.$this->id), $cnt);
+            $c->set(Cache::key('profile:fave_count:'.$this->id), $cnt);
         }
 
         return $cnt;
@@ -699,10 +699,10 @@ class Profile extends Memcached_DataObject
 
     function noticeCount()
     {
-        $c = common_memcache();
+        $c = Cache::instance();
 
         if (!empty($c)) {
-            $cnt = $c->get(common_cache_key('profile:notice_count:'.$this->id));
+            $cnt = $c->get(Cache::key('profile:notice_count:'.$this->id));
             if (is_integer($cnt)) {
                 return (int) $cnt;
             }
@@ -713,7 +713,7 @@ class Profile extends Memcached_DataObject
         $cnt = (int) $notices->count('distinct id');
 
         if (!empty($c)) {
-            $c->set(common_cache_key('profile:notice_count:'.$this->id), $cnt);
+            $c->set(Cache::key('profile:notice_count:'.$this->id), $cnt);
         }
 
         return $cnt;
@@ -721,33 +721,33 @@ class Profile extends Memcached_DataObject
 
     function blowSubscriberCount()
     {
-        $c = common_memcache();
+        $c = Cache::instance();
         if (!empty($c)) {
-            $c->delete(common_cache_key('profile:subscriber_count:'.$this->id));
+            $c->delete(Cache::key('profile:subscriber_count:'.$this->id));
         }
     }
 
     function blowSubscriptionCount()
     {
-        $c = common_memcache();
+        $c = Cache::instance();
         if (!empty($c)) {
-            $c->delete(common_cache_key('profile:subscription_count:'.$this->id));
+            $c->delete(Cache::key('profile:subscription_count:'.$this->id));
         }
     }
 
     function blowFaveCount()
     {
-        $c = common_memcache();
+        $c = Cache::instance();
         if (!empty($c)) {
-            $c->delete(common_cache_key('profile:fave_count:'.$this->id));
+            $c->delete(Cache::key('profile:fave_count:'.$this->id));
         }
     }
 
     function blowNoticeCount()
     {
-        $c = common_memcache();
+        $c = Cache::instance();
         if (!empty($c)) {
-            $c->delete(common_cache_key('profile:notice_count:'.$this->id));
+            $c->delete(Cache::key('profile:notice_count:'.$this->id));
         }
     }
 
@@ -1161,5 +1161,26 @@ class Profile extends Memcached_DataObject
         }
 
         return $feed;
+    }
+
+    static function fromURI($uri)
+    {
+        $profile = null;
+
+        if (Event::handle('StartGetProfileFromURI', array($uri, &$profile))) {
+            // Get a local user or remote (OMB 0.1) profile
+            $user = User::staticGet('uri', $uri);
+            if (!empty($user)) {
+                $profile = $user->getProfile();
+            } else {
+                $remote_profile = Remote_profile::staticGet('uri', $uri);
+                if (!empty($remote_profile)) {
+                    $profile = Profile::staticGet('id', $remote_profile->profile_id);
+                }
+            }
+            Event::handle('EndGetProfileFromURI', array($uri, $profile));
+        }
+
+        return $profile;
     }
 }
