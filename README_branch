@@ -1,16 +1,27 @@
-This is the twitter list branch, to set up database run:
+This is the twitter lists (natively known as people tags) branch,
+to set up database run:
 
 mysql -u dbuser --password=password dbname < db/peopletags.sql
 
-WARNING: you'll need to run scripts/rebuilddb.sh to use other branches
-More on http://status.net/wiki/Lists
+This change to the database is supposed to be backward compatible,
+If you have any problems using other branches after running the
+above script, it is a bug, please report it by adding it to the
+bottom of the wiki page [0] or emailing me [1]
 
-BUGS
-====
+Known issues
+============
 
-common_local_url('ApiTimelineList',
-                 array('user' => $nickname,
-                       'id' => $tag,
-                       'format' => 'atom'));
++ Subscription & subscriber tag clouds show private tags when
+  they shouldn't be
++ Autocompletion has problems when text exceeds the width of the
+  input box
++ The ajaxy people search results in the people tag editing
+  interface does not have paging
++ Code needs proper documentation peopletags and people tags
+  have been used interchangably in the docs. Not good.
 
-is not working. But requests resolve correctly
+WARNING: Do NOT use this branch to run a production server or
+even a remotely important instance!
+
+[0]: http://status.net/wiki/People_tags
+[1]: Shashi Gowda <connect2shashi@gmail.com>
