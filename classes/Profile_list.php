@@ -553,7 +553,7 @@ class Profile_list extends Memcached_DataObject
     }
 
     static function setCache($ckey, &$tag, $offset=0, $limit=null) {
-        $cache = common_memcache();
+        $cache = Cache::instance();
         if (empty($cache)) {
             return false;
         }
@@ -593,7 +593,7 @@ class Profile_list extends Memcached_DataObject
     }
 
     static function getByKeys($keys) {
-        $cache = common_memcache();
+        $cache = Cache::instance();
 
         if (!empty($cache)) {
             $tags = array();
