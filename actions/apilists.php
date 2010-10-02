@@ -21,6 +21,7 @@
  *
  * @category  API
  * @package   StatusNet
+ * @author    Shashi Gowda <connect2shashi@gmail.com>
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -29,15 +30,40 @@ if (!defined('STATUSNET')) {
     exit(1);
 }
 
-require_once INSTALLDIR . '/lib/apiauth.php';
+require_once INSTALLDIR . '/lib/apibareauth.php';
 
-class ApiListsAction extends ApiAuthAction
+/**
+ * Action handler for Twitter list_memeber methods
+ *
+ * @category API
+ * @package  StatusNet
+ * @author   Shashi Gowda <connect2shashi@gmail.com>
+ * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
+ * @link     http://status.net/
+ * @see      ApiBareAuthAction
+ */
+
+class ApiListsAction extends ApiBareAuthAction
 {
     var $lists   = null;
     var $cursor = 0;
     var $next_cursor = 0;
     var $prev_cursor = 0;
     var $create = false;
+
+    /**
+     * Set the flags for handling the request. List lists created by user if this
+     * is a GET request, create a new list if it is a POST request.
+     *
+     * Takes parameters:
+     *     - user: the user id or nickname
+     * Parameters for POST request
+     *     - name: name of the new list (the people tag itself)
+     *     - mode: (optional) mode for the new list private/public
+     *     - description: (optional) description for the list
+     *
+     * @return boolean success flag
+     */
 
     function prepare($args)
     {
@@ -59,13 +85,29 @@ class ApiListsAction extends ApiAuthAction
         return true;
     }
 
+    /**
+     * require authentication if it is a write action or user is ambiguous
+     *
+     */
+
+    function requiresAuth()
+    {
+        return parent::requiresAuth() ||
+            $this->create || $this->delete;
+    }
+
+    /**
+     * Handle request:
+     *     Show the lists the user has created if the request method is GET
+     *     Create a new list by diferring to handlePost() if it is POST.
+     */
+
     function handle($args)
     {
         parent::handle($args);
 
         if($this->create) {
-            $this->handlePost();
-            return true;
+            return $this->handlePost();
         }
 
         switch($this->format) {

@@ -2,7 +2,7 @@
 /**
  * StatusNet, the distributed open-source microblogging tool
  *
- * Show/add/remove list members.
+ * List/add/remove list members.
  *
  * PHP version 5
  *
@@ -21,6 +21,7 @@
  *
  * @category  API
  * @package   StatusNet
+ * @author    Shashi Gowda <connect2shashi@gmail.com>
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -89,6 +90,12 @@ class ApiListMembersAction extends ApiListUsersAction
         }
     }
 
+    /**
+     * Remove a user from a list (untag someone)
+     *
+     * @return boolean success
+     */
+
     function handleDelete()
     {
         if($this->auth_user->id != $this->list->tagger) {
@@ -152,6 +159,10 @@ class ApiListMembersAction extends ApiListUsersAction
         }
         return true;
     }
+
+    /**
+     * List the members of a list (people tagged)
+     */
 
     function getUsers()
     {

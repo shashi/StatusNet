@@ -3,7 +3,7 @@
  * StatusNet - the distributed open-source microblogging tool
  * Copyright (C) 2008-2010, StatusNet, Inc.
  *
- * Subscription action.
+ * Action to add a people tag to a user.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -34,16 +34,15 @@ if (!defined('STATUSNET')) {
 require_once INSTALLDIR . '/lib/togglepeopletag.php';
 
 /**
- * Subscription action
- *
- * Subscribing to a profile. Does not work for OMB 0.1 remote subscriptions,
- * but may work for other remote subscription protocols, like OStatus.
- *
+ *  
+ * Action to tag a profile with a single tag.
+ * 
  * Takes parameters:
  *
- *    - subscribeto: a profile ID
+ *    - tagged: the ID of the profile being tagged
  *    - token: session token to prevent CSRF attacks
  *    - ajax: boolean; whether to return Ajax or full-browser results
+ *    - peopletag_id: the ID of the tag being used
  *
  * Only works if the current user is logged in.
  *
@@ -127,7 +126,7 @@ class AddpeopletagAction extends Action
     /**
      * Handle request
      *
-     * Does the subscription and returns results.
+     * Does the tagging and returns results.
      *
      * @param Array $args unused.
      *
@@ -136,8 +135,8 @@ class AddpeopletagAction extends Action
 
     function handle($args)
     {
-        // Throws exception on error
 
+        // Throws exception on error
         $ptag = Profile_tag::setTag($this->user->id, $this->tagged->id,
                                 $this->peopletag->tag);
 

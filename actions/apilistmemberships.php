@@ -2,7 +2,7 @@
 /**
  * StatusNet, the distributed open-source microblogging tool
  *
- * Get a list of lists a user belongs to.
+ * Get a list of lists a user belongs to. (people tags for a user)
  *
  * PHP version 5
  *
@@ -21,8 +21,7 @@
  *
  * @category  API
  * @package   StatusNet
- * @copyright 2009 StatusNet, Inc.
- * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
+ * @author    Shashi Gowda <connect2shashi@gmail.com>
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -33,6 +32,18 @@ if (!defined('STATUSNET')) {
 
 require_once INSTALLDIR . '/lib/apibareauth.php';
 
+/**
+ * Action handler for API method to list lists a user belongs to.
+ * (people tags for a user)
+ *
+ * @category API
+ * @package  StatusNet
+ * @author   Shashi Gowda <connect2shashi@gmail.com>
+ * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
+ * @link     http://status.net/
+ * @see      ApiBareAuthAction
+ */
+
 class ApiListMembershipsAction extends ApiBareAuthAction
 {
     var $lists = array();
@@ -41,7 +52,8 @@ class ApiListMembershipsAction extends ApiBareAuthAction
     var $prev_cursor = 0;
 
     /**
-     * Take arguments for running
+     * Prepare for running the action
+     * Take arguments for running:s
      *
      * @param array $args $_REQUEST args
      *

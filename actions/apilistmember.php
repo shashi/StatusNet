@@ -2,7 +2,7 @@
 /**
  * StatusNet, the distributed open-source microblogging tool
  *
- * Check if a user belongs to a list
+ * API method to check if a user belongs to a list.
  *
  * PHP version 5
  *
@@ -21,6 +21,7 @@
  *
  * @category  API
  * @package   StatusNet
+ * @author    Shashi Gowda <connect2shashi@gmail.com>
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -29,13 +30,35 @@ if (!defined('STATUSNET')) {
     exit(1);
 }
 
-require_once INSTALLDIR . '/lib/apiauth.php';
+require_once INSTALLDIR . '/lib/apibareauth.php';
 
-class ApiListMemberAction extends ApiAuthAction
+/**
+ * Action handler for Twitter list_memeber methods
+ *
+ * @category API
+ * @package  StatusNet
+ * @author   Shashi Gowda <connect2shashi@gmail.com>
+ * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
+ * @link     http://status.net/
+ * @see      ApiBareAuthAction
+ */
+
+class ApiListMemberAction extends ApiBareAuthAction
 {
-    var $list   = null;
-    var $update = false;
-    var $delete = false;
+    /**
+     * Set the flags for handling the request. Show the profile if this
+     * is a GET request AND the profile is a member of the list, add a member
+     * if it is a POST, remove the profile from the list if method is DELETE
+     * or if method is POST and an argument _method is set to DELETE. Act
+     * like we don't know if the current user has no access to the list.
+     *
+     * Takes parameters:
+     *     - user: the user id or nickname
+     *     - list_id: the id of the tag or the tag itself
+     *     - id: the id of the member being looked for/added/removed
+     *
+     * @return boolean success flag
+     */
 
     function prepare($args)
     {
@@ -55,6 +78,12 @@ class ApiListMemberAction extends ApiAuthAction
         }
         return true;
     }
+
+    /**
+     * Handle the request
+     *
+     * @return boolean success flag
+     */
 
     function handle($args)
     {

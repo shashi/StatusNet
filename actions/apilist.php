@@ -21,6 +21,7 @@
  *
  * @category  API
  * @package   StatusNet
+ * @author    Shashi Gowda <connect2shashi@gmail.com>
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -29,20 +30,45 @@ if (!defined('STATUSNET')) {
     exit(1);
 }
 
-require_once INSTALLDIR . '/lib/apiauth.php';
+require_once INSTALLDIR . '/lib/apibareauth.php';
 
-class ApiListAction extends ApiAuthAction
+class ApiListAction extends ApiBareAuthAction
 {
+    /**
+     * The list in question in the current request
+     */
+
     var $list   = null;
+
+    /**
+     * Is this an update request?
+     */
+
     var $update = false;
+
+    /**
+     * Is this a delete request?
+     */
+
     var $delete = false;
+
+    /**
+     * Set the flags for handling the request. Show list if this is a GET
+     * request, update it if it is POST, delete list if method is DELETE
+     * or if method is POST and an argument _method is set to DELETE. Act
+     * like we don't know if the current user has no access to the list.
+     *
+     * Takes parameters:
+     *     - user: the user id or nickname
+     *     - id:   the id of the tag or the tag itself
+     *
+     * @return boolean success flag
+     */
 
     function prepare($args)
     {
         parent::prepare($args);
 
-        // delete list if method is DELETE or if method is POST and an argument
-        // _method is set to DELETE
         $this->delete = ($_SERVER['REQUEST_METHOD'] == 'DELETE' ||
                             ($this->trimmed('_method') == 'DELETE' &&
                              $_SERVER['REQUEST_METHOD'] == 'POST'));
@@ -61,6 +87,12 @@ class ApiListAction extends ApiAuthAction
 
         return true;
     }
+
+    /**
+     * Handle the request
+     *
+     * @return boolean success flag
+     */
 
     function handle($args)
     {
@@ -140,6 +172,12 @@ class ApiListAction extends ApiAuthAction
         }
     }
 
+    /**
+     * Delete a list
+     *
+     * @return boolean success
+     */
+
     function handleDelete()
     {
         if($this->auth_user->id != $this->list->tagger) {
@@ -170,10 +208,22 @@ class ApiListAction extends ApiAuthAction
         }
     }
 
+    /**
+     * Indicate that this resource is not read-only.
+     *
+     * @return boolean is_read-only=false
+     */
+
     function isReadOnly($args)
     {
         return false;
     }
+
+    /**
+     * When was the list (people tag) last updated?
+     *
+     * @return String time_last_modified
+     */
 
     function lastModified()
     {
