@@ -1,11 +1,5 @@
-This is the twitter lists (natively known as people tags) branch,
-to set up database run:
-
-mysql -u dbuser --password=password dbname < db/peopletags.sql
-
-This change to the database is supposed to be backward compatible,
-If you have any problems using other branches after running the
-above script, it is a bug, please report it by adding it to the
+This is the twitter lists (natively known as people tags) branch
+if you find is a bug, please report it by adding it to the
 bottom of the wiki page [0] or emailing me [1]
 
 Known issues
