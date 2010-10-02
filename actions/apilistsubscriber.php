@@ -31,11 +31,9 @@ if (!defined('STATUSNET')) {
 
 require_once INSTALLDIR . '/lib/apiauth.php';
 
-class ApiListSubscriberAction extends ApiAuthAction
+class ApiListSubscriberAction extends ApiBareAuthAction
 {
     var $list   = null;
-    var $update = false;
-    var $delete = false;
 
     function prepare($args)
     {

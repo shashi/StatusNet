@@ -126,6 +126,17 @@ class ApiListAction extends ApiBareAuthAction
     }
 
     /**
+     * require authentication if it is a write action or user is ambiguous
+     *
+     */
+
+    function requiresAuth()
+    {
+        return parent::requiresAuth() ||
+            $this->create || $this->delete;
+    }
+
+    /**
      * Update a list
      *
      * @return boolean success
@@ -144,9 +155,10 @@ class ApiListAction extends ApiBareAuthAction
         $new_list = clone($this->list);
         $new_list->tag = common_canonical_tag($this->arg('name'));
         $new_list->description = common_canonical_tag($this->arg('description'));
-        // ignore mode
+        $new_list->private = ($this->arg('mode') === 'private') ? true : false;
 
         $result = $new_list->update($this->list);
+
         if(!$result) {
             $this->clientError(
                 _('An error occured.'),

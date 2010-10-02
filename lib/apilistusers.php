@@ -29,23 +29,21 @@ if (!defined('STATUSNET')) {
     exit(1);
 }
 
-require_once INSTALLDIR . '/lib/apiauth.php';
+require_once INSTALLDIR . '/lib/apibareauth.php';
 
-class ApiListUsersAction extends ApiAuthAction
+class ApiListUsersAction extends ApiBareAuthAction
 {
     var $list   = null;
     var $user   = false;
     var $create = false;
+    var $delete = false;
     var $cursor = -1;
     var $next_cursor = 0;
     var $prev_cursor = 0;
-    var $delete = false;
     var $users = null;
 
     function prepare($args)
     {
-        parent::prepare($args);
-
         // delete list member if method is DELETE or if method is POST and an argument
         // _method is set to DELETE
         $this->delete = ($_SERVER['REQUEST_METHOD'] == 'DELETE' ||
@@ -60,6 +58,8 @@ class ApiListUsersAction extends ApiAuthAction
             $this->user = $this->getTargetUser($this->arg('id'));
         }
 
+        parent::prepare($args);
+
         $this->list = $this->getTargetList($this->arg('user'), $this->arg('list_id'));
 
         if (empty($this->list)) {
@@ -73,18 +73,22 @@ class ApiListUsersAction extends ApiAuthAction
         return true;
     }
 
+    function requiresAuth()
+    {
+        return parent::requiresAuth() ||
+            $this->create || $this->delete;
+    }
+
     function handle($args)
     {
         parent::handle($args);
 
         if($this->delete) {
-            $this->handleDelete();
-            return true;
+            return $this->handleDelete();
         }
 
         if($this->create) {
-            $this->handlePost();
-            return true;
+            return $this->handlePost();
         }
 
         switch($this->format) {

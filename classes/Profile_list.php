@@ -446,110 +446,129 @@ class Profile_list extends Memcached_DataObject
     }
 
     /**
-     * get all lists at given cursor position for api
+     * get all items at given cursor position for api
      *
      * $fn is a function that takes the following arguments in order:
      *      $offset, $limit, $since_id, $max_id
      * and returns a Profile_list object after making the DB query
      *
-     * @returns array(array lists, int next_cursor, int previous_cursor)
+     * Algorithm:
+     * - if cursor is 0, return empty list
+     * - if cursor is -1, get first 21 items, next_cursor = 20th prev_cursor = 0
+     * - if cursor is +ve get 22 consecutive items before starting at cursor
+     *   - return items[1..20] if items[0] == cursor else return items[0..21]
+     *   - prev_cursor = items[1]
+     *   - next_cursor = id of the last item being returned
+     *
+     * - if cursor is -ve get 22 consecutive items after cursor starting at cursor
+     *   - return items[1..20]
+     *
+     * @returns array(array items, int next_cursor, int previous_cursor)
+     * XXX: This should be in Memcached_DataObject... eventually.
+     *
      */
 
     static function getAtCursor($fn, $args, $cursor, $count=20)
     {
-        $lists = array();
+        $items = array();
 
         $since_id = 0;
         $max_id = 0;
         $next_cursor = 0;
         $prev_cursor = 0;
 
-        // if cursor is zero show an empty list
-        if ($cursor==0) {
-            return array(array(), 0, 0);
-        } else if($cursor > 0) {
-            // if cursor is +ve fetch $count+1 lists before cursor,
+        if($cursor > 0) {
+            // if cursor is +ve fetch $count+2 items before cursor starting at cursor
             $max_id = $cursor;
-            $fn_args = array_merge($args, array(0, $count+1, 0, $max_id));
+            $fn_args = array_merge($args, array(0, $count+2, 0, $max_id));
             $list = call_user_func_array($fn, $fn_args);
             while($list->fetch()) {
-                $lists[] = clone($list);
+                $items[] = clone($list);
             }
 
-            if(count($lists)==$count+1) {
-                $next = array_pop($lists);
-                if(isset($next->cursor)) {
-                    $next_cursor = $next->cursor;
+            if ((isset($items[0]->cursor) && $items[0]->cursor == $cursor) ||
+                $items[0]->id == $cursor) {
+                array_shift($items);
+                $prev_cursor = isset($items[0]->cursor) ?
+                    -$items[0]->cursor : -$items[0]->id;
+            } else {
+                if (count($items) > $count+1) {
+                    array_shift($items);
+                }
+                // this means the cursor item has been deleted, check to see if there are more
+                $fn_args = array_merge($args, array(0, 1, $cursor));
+                $more = call_user_func($fn, $fn_args);
+                if (!$more->fetch() || empty($more)) {
+                    // no more items.
+                    $prev_cursor = 0;
                 } else {
-                    $next_cursor = $next->id;
+                    $prev_cursor = isset($items[0]->cursor) ?
+                        -$items[0]->cursor : -$items[0]->id;
                 }
             }
 
-            // and one list after cursor
-            $fn_args = array_merge($args, array(0, 1, $cursor));
-            $prev = call_user_func_array($fn, $fn_args);
-            while($prev->fetch()) {
-                if(isset($lists[0]->cursor)) {
-                    $prev_cursor = -1*$lists[0]->cursor;
-                }
-                else {
-                    $prev_cursor = -1*$lists[0]->id;
-                }
+            if (count($items)==$count+1) {
+                // this means there is a next page.
+                $next = array_pop($items);
+                $next_cursor = isset($next->cursor) ?
+                    $items[$count-1]->cursor : $items[$count-1]->id;
             }
-
-            return array($lists, $next_cursor, $prev_cursor);
 
         } else if($cursor < -1) {
-            // if cursor is -ve fetch $count+2 lists created after -cursor-1,
-            $since_id = abs($cursor)-1;
+            // if cursor is -ve fetch $count+2 items created after -$cursor-1
+            $cursor = abs($cursor);
+            $since_id = $cursor-1;
 
             $fn_args = array_merge($args, array(0, $count+2, $since_id));
             $list = call_user_func_array($fn, $fn_args);
             while($list->fetch()) {
-                $lists[] = clone($list);
+                $items[] = clone($list);
             }
 
-            $cur = isset($lists[count($lists)-1]->cursor) ? $lists[count($lists)-1]->cursor :
-                                $lists[count($lists)-1]->id;
-            if($cur == $cursor) {
-                // this means there exists a next page
-                $next = array_pop($lists);
-                if(isset($next->cursor)) {
-                    $next_cursor = $next->cursor;
-                } else {
-                    $next_cursor = $next->id;
+            $end = count($items)-1;
+            if ((isset($items[$end]->cursor) && $items[$end]->cursor == $cursor) ||
+                $items[$end]->id == $cursor) {
+                array_pop($items);
+                $next_cursor = isset($items[$end-1]->cursor) ?
+                    $items[$end-1]->cursor : $items[$end-1]->id;
+            } else {
+                $next_cursor = isset($items[$end]->cursor) ?
+                    $items[$end]->cursor : $items[$end]->id;
+                if ($end > $count) array_pop($items); // excess item.
+
+                // check if there are more items for next page
+                $fn_args = array_merge($args, array(0, 1, 0, $cursor));
+                $more = call_user_func_array($fn, $fn_args);
+                if (!$more->fetch() || empty($more)) {
+                    $next_cursor = 0;
                 }
             }
 
-            if(count($lists) == $count+1) {
-                $prev = array_shift($lists);
-                if(isset($prev->cursor)) {
-                    $prev_cursor = -1*$prev->cursor;
-                } else {
-                    $prev_cursor = -1*$prev->id;
-                }
+            if (count($items) == $count+1) {
+                // this means there is a previous page.
+                $prev = array_shift($items);
+                $prev_cursor = isset($prev->cursor) ?
+                    -$items[0]->cursor : -$items[0]->id;
             }
-            return array($lists, $next_cursor, $prev_cursor);
-        }
-        else if($cursor == -1) {
+        } else if($cursor == -1) {
             $fn_args = array_merge($args, array(0, $count+1));
             $list = call_user_func_array($fn, $fn_args);
 
             while($list->fetch()) {
-                $lists[] = clone($list);
+                $items[] = clone($list);
             }
 
-            if(count($lists)==$count+1) {
-                $next = array_pop($lists);
+            if (count($items)==$count+1) {
+                $next = array_pop($items);
                 if(isset($next->cursor)) {
-                    $next_cursor = $next->cursor;
+                    $next_cursor = $items[$count-1]->cursor;
                 } else {
-                    $next_cursor = $next->id;
+                    $next_cursor = $items[$count-1]->id;
                 }
             }
 
-            return array($lists, $next_cursor, $prev_cursor);
         }
+        return array($items, $next_cursor, $prev_cursor);
     }
 
     static function setCache($ckey, &$tag, $offset=0, $limit=null) {

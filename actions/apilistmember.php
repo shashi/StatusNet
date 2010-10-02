@@ -119,5 +119,6 @@ class ApiListMemberAction extends ApiBareAuthAction
             );
             break;
         }
+        return true;
     }
 }

@@ -157,6 +157,9 @@ class ApiListsAction extends ApiBareAuthAction
                                         $this->arg('name'),
                                         $this->arg('description'),
                                         $private);
+        if (empty($list)) {
+            return false;
+        }
 
         switch($this->format) {
         case 'xml':
@@ -173,6 +176,7 @@ class ApiListsAction extends ApiBareAuthAction
             );
             break;
         }
+        return true;
     }
 
     /**
