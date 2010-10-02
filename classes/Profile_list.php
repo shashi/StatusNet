@@ -1,5 +1,31 @@
 <?php
 /**
+ * StatusNet - the distributed open-source microblogging tool
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.     If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @category Notices
+ * @package  StatusNet
+ * @author   Shashi Gowda <connect2shashi@gmail.com>
+ * @license  GNU Affero General Public License http://www.gnu.org/licenses/
+ */
+
+if (!defined('STATUSNET') && !defined('LACONICA')) {
+    exit(1);
+}
+
+/**
  * Table Definition for profile_list
  */
 require_once INSTALLDIR.'/classes/Memcached_DataObject.php';
@@ -25,24 +51,50 @@ class Profile_list extends Memcached_DataObject
     /* Static get */
     function staticGet($k,$v=NULL) { return DB_DataObject::staticGet('Profile_list',$k,$v); }
 
+    /* the code above is auto generated do not remove the tag below */
+    ###END_AUTOCODE
+
+    /**
+     * return a profile_list record, given its tag and tagger.
+     *
+     * @param array $kv ideally array('tag' => $tag, 'tagger' => $tagger)
+     *
+     * @return Profile_list a Profile_list object with the given tag and tagger.
+     */
+
     function pkeyGet($kv)
     {
         return Memcached_DataObject::pkeyGet('Profile_list', $kv);
     }
 
-    /* the code above is auto generated do not remove the tag below */
-    ###END_AUTOCODE
-
+    /**
+     * get the tagger of this profile_list object
+     *
+     * @return Profile the tagger
+     */
 
     function getTagger()
     {
         return Profile::staticGet('id', $this->tagger);
     }
 
+    /**
+     * return a string to identify this
+     * profile_list in the user interface etc.
+     *
+     * @return String
+     */
+
     function getBestName()
     {
         return $this->tag;
     }
+
+    /**
+     * return a uri string for this profile_list
+     *
+     * @return String uri
+     */
 
     function getUri()
     {
@@ -58,6 +110,12 @@ class Profile_list extends Memcached_DataObject
         Event::handle('EndProfiletagGetUri', array($this, &$uri));
         return $uri;
     }
+
+    /**
+     * return a url to the homepage of this item
+     *
+     * @return String home url
+     */
 
     function homeUrl()
     {
@@ -76,6 +134,12 @@ class Profile_list extends Memcached_DataObject
         return $url;
     }
 
+    /**
+     * return an immutable url for this object
+     *
+     * @return String permalink
+     */
+
     function permalink()
     {
         $url = null;
@@ -87,6 +151,18 @@ class Profile_list extends Memcached_DataObject
         return $url;
     }
 
+    /**
+     * Query notices by users associated with this tag,
+     * but first check the cache before hitting the DB.
+     *
+     * @param integer $offset   offset
+     * @param integer $limit    maximum no of results
+     * @param integer $since_id=null    since this id
+     * @param integer $max_id=null  maximum id in result
+     *
+     * @return Notice the query
+     */
+
     function getNotices($offset, $limit, $since_id=null, $max_id=null)
     {
         $ids = Notice::stream(array($this, '_streamDirect'),
@@ -96,6 +172,17 @@ class Profile_list extends Memcached_DataObject
 
         return Notice::getStreamByIds($ids);
     }
+
+    /**
+     * Query notices by users associated with this tag from the database.
+     *
+     * @param integer $offset   offset
+     * @param integer $limit    maximum no of results
+     * @param integer $since_id=null    since this id
+     * @param integer $max_id=null  maximum id in result
+     *
+     * @return array array of notice ids.
+     */
 
     function _streamDirect($offset, $limit, $since_id, $max_id)
     {
@@ -131,6 +218,18 @@ class Profile_list extends Memcached_DataObject
         return $ids;
     }
 
+    /**
+     * Get subscribers (local and remote) to this people tag
+     * Order by reverse chronology
+     *
+     * @param integer $offset   offset
+     * @param integer $limit    maximum no of results
+     * @param integer $since_id=null    since unix timestamp
+     * @param integer $upto=null  maximum unix timestamp when subscription was made
+     *
+     * @return Profile results
+     */
+
     function getSubscribers($offset=0, $limit=null, $since=0, $upto=0)
     {
         $subs = new Profile();
@@ -153,11 +252,18 @@ class Profile_list extends Memcached_DataObject
             $subs->limit($offset, $limit);
         }
 
-        $subs->orderBy('"cursor" DESC');
+        $subs->orderBy('profile_tag_subscription.created DESC');
         $subs->find();
 
         return $subs;
     }
+
+    /**
+     * Get all and only local subscribers to this people tag
+     * used for distributing notices to user inboxes.
+     *
+     * @return array ids of users
+     */
 
     function getUserSubscribers()
     {
@@ -187,6 +293,15 @@ class Profile_list extends Memcached_DataObject
         return $ids;
     }
 
+    /**
+     * Check to see if a given profile has
+     * subscribed to this people tag's timeline
+     *
+     * @param mixed $id User or Profile object or integer id
+     *
+     * @return boolean subscription status
+     */
+
     function hasSubscriber($id)
     {
         if (!is_numeric($id)) {
@@ -197,6 +312,19 @@ class Profile_list extends Memcached_DataObject
                                                        'profile_id'     => $id));
         return !empty($sub);
     }
+
+    /**
+     * Get profiles tagged with this people tag,
+     * include modified timestamp as a "cursor" field
+     * order by descending order of modified time
+     *
+     * @param integer $offset   offset
+     * @param integer $limit    maximum no of results
+     * @param integer $since_id=null    since unix timestamp
+     * @param integer $upto=null  maximum unix timestamp when subscription was made
+     *
+     * @return Profile results
+     */
 
     function getTagged($offset=0, $limit=null, $since=0, $upto=0)
     {
@@ -220,11 +348,18 @@ class Profile_list extends Memcached_DataObject
             $tagged->limit($offset, $limit);
         }
 
-        $tagged->orderBy('"cursor" DESC');
+        $tagged->orderBy('profile_tag.modified DESC');
         $tagged->find();
 
         return $tagged;
     }
+
+    /**
+     * Gracefully delete one or many people tags
+     * along with their members and subscriptions data
+     *
+     * @return boolean success
+     */
 
     function delete()
     {
@@ -239,8 +374,17 @@ class Profile_list extends Memcached_DataObject
         Profile_tag::cleanup($this);
         Profile_tag_subscription::cleanup($this);
 
-        parent::delete();
+        return parent::delete();
     }
+
+    /**
+     * Update a people tag gracefully
+     * also change "tag" fields in profile_tag table
+     *
+     * @param Profile_list $orig    Object's original form
+     *
+     * @return boolean success
+     */
 
     function update($orig=null)
     {
@@ -267,6 +411,13 @@ class Profile_list extends Memcached_DataObject
         return $result;
     }
 
+    /**
+     * return an xml string representing this people tag
+     * as the author of an atom feed
+     *
+     * @return string atom author element
+     */
+
     function asAtomAuthor()
     {
         $xs = new XMLStringer(true);
@@ -280,16 +431,41 @@ class Profile_list extends Memcached_DataObject
         return $xs->getString();
     }
 
+    /**
+     * return an xml string to represent this people tag
+     * as the subject of an activitystreams feed.
+     *
+     * @return string activitystreams subject
+     */
+
     function asActivitySubject()
     {
         return $this->asActivityNoun('subject');
     }
+
+    /**
+     * return an xml string to represent this people tag
+     * as a noun in an activitystreams feed.
+     *
+     * @param string $element the xml tag
+     *
+     * @return string activitystreams noun
+     */
 
     function asActivityNoun($element)
     {
         $noun = ActivityObject::fromPeopletag($this);
         return $noun->asString('activity:' . $element);
     }
+
+    /**
+     * get the cached number of profiles tagged with this
+     * people tag, re-count if the argument is true.
+     *
+     * @param boolean $recount  whether to ignore cache
+     *
+     * @return integer count
+     */
 
     function taggedCount($recount=false)
     {
@@ -307,6 +483,15 @@ class Profile_list extends Memcached_DataObject
         return $this->tagged_count;
     }
 
+    /**
+     * get the cached number of profiles subscribed to this
+     * people tag, re-count if the argument is true.
+     *
+     * @param boolean $recount  whether to ignore cache
+     *
+     * @return integer count
+     */
+
     function subscriberCount($recount=false)
     {
         if ($recount) {
@@ -322,13 +507,34 @@ class Profile_list extends Memcached_DataObject
         return $this->subscriber_count;
     }
 
+    /**
+     * get the Profile_list object by the
+     * given tagger and with given tag
+     *
+     * @param integer $tagger   the id of the creator profile
+     * @param integer $tag      the tag
+     *
+     * @return integer count
+     */
+
     static function getByTaggerAndTag($tagger, $tag)
     {
         $ptag = Profile_list::pkeyGet(array('tagger' => $tagger, 'tag' => $tag));
         return $ptag;
     }
 
-    /* create the tag if it does not exist, return it */
+    /**
+     * create a profile_list record for a tag, tagger pair
+     * if it doesn't exist, return it.
+     *
+     * @param integer $tagger   the tagger
+     * @param string  $tag      the tag
+     * @param string  $description description
+     * @param boolean $private  protected or not
+     *
+     * @return Profile_list the people tag object
+     */
+
     static function ensureTag($tagger, $tag, $description=null, $private=false)
     {
         $ptag = Profile_list::getByTaggerAndTag($tagger, $tag);
@@ -348,6 +554,17 @@ class Profile_list extends Memcached_DataObject
         return $ptag;
     }
 
+    /**
+     * get the maximum number of characters
+     * that can be used in the description of
+     * a people tag.
+     *
+     * determined by $config['peopletag']['desclimit']
+     * if not set, falls back to $config['site']['textlimit']
+     *
+     * @return integer maximum number of characters
+     */
+
     static function maxDescription()
     {
         $desclimit = common_config('peopletag', 'desclimit');
@@ -358,12 +575,30 @@ class Profile_list extends Memcached_DataObject
         return $desclimit;
     }
 
+    /**
+     * check if the length of given text exceeds
+     * character limit.
+     *
+     * @param string $desc  the description
+     *
+     * @return boolean is the descripition too long?
+     */
+
     static function descriptionTooLong($desc)
     {
         $desclimit = self::maxDescription();
         return ($desclimit > 0 && !empty($desc) && (mb_strlen($desc) > $desclimit));
     }
 
+    /**
+     * save a new people tag, this should be always used
+     * since it makes uri, homeurl, created and modified
+     * timestamps and performs checks.
+     *
+     * @param array $fields an array with fields and their values
+     *
+     * @return mixed Profile_list on success, false on fail
+     */
     static function saveNew($fields) {
 
         extract($fields);
@@ -448,9 +683,12 @@ class Profile_list extends Memcached_DataObject
     /**
      * get all items at given cursor position for api
      *
-     * $fn is a function that takes the following arguments in order:
-     *      $offset, $limit, $since_id, $max_id
-     * and returns a Profile_list object after making the DB query
+     * @param callback $fn  a function that takes the following arguments in order:
+     *                      $offset, $limit, $since_id, $max_id
+     *                      and returns a Profile_list object after making the DB query
+     * @param array $args   arguments required for $fn
+     * @param integer $cursor   the cursor
+     * @param integer $count    max. number of results
      *
      * Algorithm:
      * - if cursor is 0, return empty list
@@ -463,10 +701,10 @@ class Profile_list extends Memcached_DataObject
      * - if cursor is -ve get 22 consecutive items after cursor starting at cursor
      *   - return items[1..20]
      *
-     * @returns array(array items, int next_cursor, int previous_cursor)
-     * XXX: This should be in Memcached_DataObject... eventually.
-     *
+     * @returns array (array (mixed items), int next_cursor, int previous_cursor)
      */
+
+     // XXX: This should be in Memcached_DataObject... eventually.
 
     static function getAtCursor($fn, $args, $cursor, $count=20)
     {
@@ -571,6 +809,17 @@ class Profile_list extends Memcached_DataObject
         return array($items, $next_cursor, $prev_cursor);
     }
 
+    /**
+     * save a collection of people tags into the cache
+     *
+     * @param string $ckey  cache key
+     * @param Profile_list &$tag the results to store
+     * @param integer $offset   offset for slicing results
+     * @param integer $limit    maximum number of results
+     *
+     * @return boolean success
+     */
+
     static function setCache($ckey, &$tag, $offset=0, $limit=null) {
         $cache = Cache::instance();
         if (empty($cache)) {
@@ -592,6 +841,16 @@ class Profile_list extends Memcached_DataObject
         return self::cacheSet($ckey, $str);
     }
 
+    /**
+     * get people tags from the cache
+     *
+     * @param string $ckey  cache key
+     * @param integer $offset   offset for slicing
+     * @param integer $limit    limit
+     *
+     * @return Profile_list results
+     */
+
     static function getCached($ckey, $offset=0, $limit=null) {
 
         $keys_str = self::cacheGet($ckey);
@@ -610,6 +869,15 @@ class Profile_list extends Memcached_DataObject
         }
         return self::getByKeys($keys, $tagger);
     }
+
+    /**
+     * get Profile_list objects from the database
+     * given their (tag, tagger) key pairs.
+     *
+     * @param array $keys   array of array(tagger, tag)
+     *
+     * @return Profile_list results
+     */
 
     static function getByKeys($keys) {
         $cache = Cache::instance();
