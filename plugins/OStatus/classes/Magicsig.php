@@ -27,11 +27,14 @@
  * @link      http://status.net/
  */
 
+if (!defined('STATUSNET')) {
+    exit(1);
+}
+
 require_once 'Crypt/RSA.php';
 
 class Magicsig extends Memcached_DataObject
 {
-
     const PUBLICKEYREL = 'magic-public-key';
 
     public $__table = 'magicsig';
@@ -86,7 +89,6 @@ class Magicsig extends Memcached_DataObject
                                    64, false));
     }
 
-
     function keys()
     {
         return array_keys($this->keyTypes());
@@ -125,7 +127,6 @@ class Magicsig extends Memcached_DataObject
         $this->user_id = $user_id;
         $this->insert();
     }
-
 
     public function toString($full_pair = true)
     {
@@ -197,7 +198,6 @@ class Magicsig extends Memcached_DataObject
         case 'RSA-SHA256':
             return 'sha256';
         }
-
     }
 
     public function sign($bytes)

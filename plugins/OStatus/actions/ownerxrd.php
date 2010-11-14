@@ -22,7 +22,9 @@
  * @maintainer James Walker <james@status.net>
  */
 
-if (!defined('STATUSNET') && !defined('LACONICA')) { exit(1); }
+if (!defined('STATUSNET')) {
+    exit(1);
+}
 
 class OwnerxrdAction extends XrdAction
 {
@@ -34,7 +36,7 @@ class OwnerxrdAction extends XrdAction
         $this->user = User::siteOwner();
 
         if (!$this->user) {
-            $this->clientError(_('No such user.'), 404);
+            $this->clientError(_m('No such user.'), 404);
             return false;
         }
 

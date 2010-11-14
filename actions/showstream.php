@@ -54,7 +54,6 @@ require_once INSTALLDIR.'/lib/feedlist.php';
  * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link     http://status.net/
  */
-
 class ShowstreamAction extends ProfileAction
 {
     function isReadOnly($args)
@@ -84,7 +83,6 @@ class ShowstreamAction extends ProfileAction
 
     function handle($args)
     {
-
         // Looks like we're good; start output
 
         // For YADIS discovery, we also have a <meta> tag
@@ -180,7 +178,6 @@ class ShowstreamAction extends ProfileAction
         $this->element('link', array('rel' => 'EditURI',
                                      'type' => 'application/rsd+xml',
                                      'href' => $rsd));
-
     }
 
     function showProfile()
@@ -216,7 +213,10 @@ class ShowstreamAction extends ProfileAction
           ? $this->user->getNotices(($this->page-1)*NOTICES_PER_PAGE, NOTICES_PER_PAGE + 1)
             : $this->user->getTaggedNotices($this->tag, ($this->page-1)*NOTICES_PER_PAGE, NOTICES_PER_PAGE + 1, 0, 0, null);
 
-        $pnl = new ProfileNoticeList($notice, $this);
+        $pnl = null;
+        if (Event::handle('ShowStreamNoticeList', array($notice, $this, &$pnl))) {
+            $pnl = new ProfileNoticeList($notice, $this);
+        }
         $cnt = $pnl->show();
         if (0 == $cnt) {
             $this->showEmptyListMessage();
@@ -266,7 +266,7 @@ class ProfileNoticeList extends NoticeList
     }
 }
 
-class ProfileNoticeListItem extends NoticeListItem
+class ProfileNoticeListItem extends DoFollowListItem
 {
     function showAuthor()
     {

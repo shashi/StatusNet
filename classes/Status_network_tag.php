@@ -26,7 +26,7 @@ class Status_network_tag extends Safe_DataObject
 
     public $__table = 'status_network_tag';                      // table name
     public $site_id;                  // int(4)  primary_key not_null
-    public $tag;                      // varchar(64)  primary_key not_null 
+    public $tag;                      // varchar(64)  primary_key not_null
     public $created;                 // datetime()   not_null
 
 
@@ -34,7 +34,7 @@ class Status_network_tag extends Safe_DataObject
     {
         global $config;
         global $_DB_DATAOBJECT;
-        
+
         $sn = new Status_network();
         $sn->_connect();
 
@@ -42,7 +42,6 @@ class Status_network_tag extends Safe_DataObject
 
         $this->_connect();
     }
-
 
     /* Static get */
     function staticGet($k,$v=null)
@@ -99,7 +98,7 @@ class Status_network_tag extends Safe_DataObject
 
         if (Status_network::$cache) {
             $packed = implode('|', $result);
-            Status_network::$cache->set($key, $packed, 3600);
+            Status_network::$cache->set($key, $packed, 0, 3600);
         }
 
         return $result;

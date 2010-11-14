@@ -169,7 +169,6 @@ class StatusNet
         return $sites;
     }
 
-
     /**
      * Fire initialization events for all instantiated plugins.
      */
@@ -225,7 +224,7 @@ class StatusNet
     {
         return self::$is_api;
     }
-    
+
     public function setApi($mode)
     {
         self::$is_api = $mode;
@@ -341,8 +340,11 @@ class StatusNet
 
         foreach ($config_files as $_config_file) {
             if (@file_exists($_config_file)) {
-                include($_config_file);
-                self::$have_config = true;
+                // Ignore 0-byte config files
+                if (filesize($_config_file) > 0) {
+                    include($_config_file);
+                    self::$have_config = true;
+                }
             }
         }
 
@@ -383,6 +385,18 @@ class StatusNet
                 ));
             }
         }
+    }
+
+    /**
+     * Are we running from the web with HTTPS?
+     *
+     * @return boolean true if we're running with HTTPS; else false
+     */
+
+    static function isHTTPS()
+    {
+        // There are some exceptions to this; add them here!
+        return !empty($_SERVER['HTTPS']);
     }
 }
 

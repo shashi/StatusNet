@@ -114,7 +114,6 @@ class ApiValidationException extends Exception { }
  * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link     http://status.net/
  */
-
 class ApiAction extends Action
 {
     const READ_ONLY  = 1;
@@ -141,7 +140,6 @@ class ApiAction extends Action
      *
      * @return boolean false if user doesn't exist
      */
-
     function prepare($args)
     {
         StatusNet::setApi(true); // reduce exception reports to aid in debugging
@@ -174,7 +172,6 @@ class ApiAction extends Action
      *
      * @return void
      */
-
     function handle($args)
     {
         header('Access-Control-Allow-Origin: *');
@@ -493,7 +490,6 @@ class ApiAction extends Action
         $entry = array();
 
         if (Event::handle('StartRssEntryArray', array($notice, &$entry))) {
-
             $profile = $notice->getProfile();
 
             // We trim() to avoid extraneous whitespace in the output
@@ -583,7 +579,6 @@ class ApiAction extends Action
         $notifications = false;
 
         if ($source->isSubscribed($target)) {
-
             $sub = Subscription::pkeyGet(array('subscriber' =>
                 $source->id, 'subscribed' => $target->id));
 
@@ -783,7 +778,6 @@ class ApiAction extends Action
 
     function showXmlTimeline($notice)
     {
-
         $this->initDocument('xml');
         $this->elementStart('statuses', array('type' => 'array',
                                               'xmlns:statusnet' => 'http://status.net/schema/api/1/'));
@@ -808,7 +802,6 @@ class ApiAction extends Action
 
     function showRssTimeline($notice, $title, $link, $subtitle, $suplink = null, $logo = null, $self = null)
     {
-
         $this->initDocument('rss');
 
         $this->element('title', null, $title);
@@ -864,7 +857,6 @@ class ApiAction extends Action
 
     function showAtomTimeline($notice, $title, $id, $link, $subtitle=null, $suplink=null, $selfuri=null, $logo=null)
     {
-
         $this->initDocument('atom');
 
         $this->element('title', null, $title);
@@ -904,12 +896,10 @@ class ApiAction extends Action
         }
 
         $this->endDocument('atom');
-
     }
 
     function showRssGroups($group, $title, $link, $subtitle)
     {
-
         $this->initDocument('rss');
 
         $this->element('title', null, $title);
@@ -1057,7 +1047,6 @@ class ApiAction extends Action
 
     function showAtomGroups($group, $title, $id, $link, $subtitle=null, $selfuri=null)
     {
-
         $this->initDocument('atom');
 
         $this->element('title', null, common_xml_safe_str($title));
@@ -1088,7 +1077,6 @@ class ApiAction extends Action
 
     function showJsonTimeline($notice)
     {
-
         $this->initDocument('json');
 
         $statuses = array();
@@ -1114,7 +1102,6 @@ class ApiAction extends Action
 
     function showJsonGroups($group)
     {
-
         $this->initDocument('json');
 
         $groups = array();
@@ -1219,7 +1206,6 @@ class ApiAction extends Action
 
     function showTwitterXmlUsers($user)
     {
-
         $this->initDocument('xml');
         $this->elementStart('users', array('type' => 'array',
                                            'xmlns:statusnet' => 'http://status.net/schema/api/1/'));
@@ -1242,7 +1228,6 @@ class ApiAction extends Action
 
     function showJsonUsers($user)
     {
-
         $this->initDocument('json');
 
         $users = array();
@@ -1343,7 +1328,6 @@ class ApiAction extends Action
             $this->endXML();
             break;
         case 'json':
-
             // Check for JSONP callback
             if (isset($this->callback)) {
                 print ')';
@@ -1377,23 +1361,29 @@ class ApiAction extends Action
 
         // Do not emit error header for JSONP
         if (!isset($this->callback)) {
-            header('HTTP/1.1 '.$code.' '.$status_string);
+            header('HTTP/1.1 ' . $code . ' ' . $status_string);
         }
 
-        if ($format == 'xml') {
+        switch($format) {
+        case 'xml':
             $this->initDocument('xml');
             $this->elementStart('hash');
             $this->element('error', null, $msg);
             $this->element('request', null, $_SERVER['REQUEST_URI']);
             $this->elementEnd('hash');
             $this->endDocument('xml');
-        } elseif ($format == 'json'){
+            break;
+        case 'json':
             $this->initDocument('json');
             $error_array = array('error' => $msg, 'request' => $_SERVER['REQUEST_URI']);
             print(json_encode($error_array));
             $this->endDocument('json');
-        } else {
-
+            break;
+        case 'text':
+            header('Content-Type: text/plain; charset=utf-8');
+            print $msg;
+            break;
+        default:
             // If user didn't request a useful format, throw a regular client error
             throw new ClientException($msg, $code);
         }
@@ -1489,7 +1479,6 @@ class ApiAction extends Action
     function getTargetUser($id)
     {
         if (empty($id)) {
-
             // Twitter supports these other ways of passing the user ID
             if (is_numeric($this->arg('id'))) {
                 return User::staticGet($this->arg('id'));
@@ -1526,8 +1515,10 @@ class ApiAction extends Action
             if (is_numeric($this->arg('id'))) {
                 return Profile::staticGet($this->arg('id'));
             } else if ($this->arg('id')) {
+                // Screen names currently can only uniquely identify a local user.
                 $nickname = common_canonical_nickname($this->arg('id'));
-                return Profile::staticGet('nickname', $nickname);
+                $user = User::staticGet('nickname', $nickname);
+                return $user ? $user->getProfile() : null;
             } else if ($this->arg('user_id')) {
                 // This is to ensure that a non-numeric user_id still
                 // overrides screen_name even if it doesn't get used
@@ -1536,13 +1527,15 @@ class ApiAction extends Action
                 }
             } else if ($this->arg('screen_name')) {
                 $nickname = common_canonical_nickname($this->arg('screen_name'));
-                return Profile::staticGet('nickname', $nickname);
+                $user = User::staticGet('nickname', $nickname);
+                return $user ? $user->getProfile() : null;
             }
         } else if (is_numeric($id)) {
             return Profile::staticGet($id);
         } else {
             $nickname = common_canonical_nickname($id);
-            return Profile::staticGet('nickname', $nickname);
+            $user = User::staticGet('nickname', $nickname);
+            return $user ? $user->getProfile() : null;
         }
     }
 
@@ -1634,7 +1627,6 @@ class ApiAction extends Action
      */
     function arg($key, $def=null)
     {
-
         // XXX: Do even more input validation/scrubbing?
 
         if (array_key_exists($key, $this->args)) {
@@ -1701,5 +1693,4 @@ class ApiAction extends Action
 
         return $uri;
     }
-
 }

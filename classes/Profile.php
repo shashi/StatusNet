@@ -103,7 +103,6 @@ class Profile extends Memcached_DataObject
         foreach (array(AVATAR_PROFILE_SIZE, AVATAR_STREAM_SIZE, AVATAR_MINI_SIZE) as $size) {
             # We don't do a scaled one if original is our scaled size
             if (!($avatar->width == $size && $avatar->height == $size)) {
-
                 $scaled_filename = $imagefile->resize($size);
 
                 //$scaled = DB_DataObject::factory('avatar');
@@ -200,7 +199,7 @@ class Profile extends Memcached_DataObject
         }
 
         if ($max_id != 0) {
-            $query .= " and id < $max_id";
+            $query .= " and id <= $max_id";
         }
 
         $query .= ' order by id DESC';
@@ -241,7 +240,7 @@ class Profile extends Memcached_DataObject
             }
 
             if ($max_id != 0) {
-                $query .= " and id < $max_id";
+                $query .= " and id <= $max_id";
             }
 
             $query .= ' order by id DESC';
@@ -604,10 +603,10 @@ class Profile extends Memcached_DataObject
         return $tagged;
     }
 
-    function getApplications($offset = 0, $limit = null)
+    function getConnectedApps($offset = 0, $limit = null)
     {
         $qry =
-          'SELECT a.* ' .
+          'SELECT u.* ' .
           'FROM oauth_application_user u, oauth_application a ' .
           'WHERE u.profile_id = %d ' .
           'AND a.id = u.application_id ' .
@@ -622,11 +621,11 @@ class Profile extends Memcached_DataObject
             }
         }
 
-        $application = new Oauth_application();
+        $apps = new Oauth_application_user();
 
-        $cnt = $application->query(sprintf($qry, $this->id));
+        $cnt = $apps->query(sprintf($qry, $this->id));
 
-        return $application;
+        return $apps;
     }
 
     function subscriptionCount()
@@ -676,6 +675,41 @@ class Profile extends Memcached_DataObject
         return $cnt;
     }
 
+    function hasFave($notice)
+    {
+        $cache = Cache::instance();
+
+        // XXX: Kind of a hack.
+
+        if (!empty($cache)) {
+            // This is the stream of favorite notices, in rev chron
+            // order. This forces it into cache.
+
+            $ids = Fave::stream($this->id, 0, NOTICE_CACHE_WINDOW);
+
+            // If it's in the list, then it's a fave
+
+            if (in_array($notice->id, $ids)) {
+                return true;
+            }
+
+            // If we're not past the end of the cache window,
+            // then the cache has all available faves, so this one
+            // is not a fave.
+
+            if (count($ids) < NOTICE_CACHE_WINDOW) {
+                return false;
+            }
+
+            // Otherwise, cache doesn't have all faves;
+            // fall through to the default
+        }
+
+        $fave = Fave::pkeyGet(array('user_id' => $this->id,
+                                    'notice_id' => $notice->id));
+        return ((is_null($fave)) ? false : true);
+    }
+
     function faveCount()
     {
         $c = Cache::instance();
@@ -717,6 +751,20 @@ class Profile extends Memcached_DataObject
         }
 
         return $cnt;
+    }
+
+    function blowFavesCache()
+    {
+        $cache = common_memcache();
+        if ($cache) {
+            // Faves don't happen chronologically, so we need to blow
+            // ;last cache, too
+            $cache->delete(common_cache_key('fave:ids_by_user:'.$this->id));
+            $cache->delete(common_cache_key('fave:ids_by_user:'.$this->id.';last'));
+            $cache->delete(common_cache_key('fave:ids_by_user_own:'.$this->id));
+            $cache->delete(common_cache_key('fave:ids_by_user_own:'.$this->id.';last'));
+        }
+        $this->blowFaveCount();
     }
 
     function blowSubscriberCount()
@@ -912,43 +960,52 @@ class Profile extends Memcached_DataObject
 
     function grantRole($name)
     {
-        $role = new Profile_role();
+        if (Event::handle('StartGrantRole', array($this, $name))) {
 
-        $role->profile_id = $this->id;
-        $role->role       = $name;
-        $role->created    = common_sql_now();
+            $role = new Profile_role();
 
-        $result = $role->insert();
+            $role->profile_id = $this->id;
+            $role->role       = $name;
+            $role->created    = common_sql_now();
 
-        if (!$result) {
-            common_log_db_error($role, 'INSERT', __FILE__);
-            return false;
+            $result = $role->insert();
+
+            if (!$result) {
+                throw new Exception("Can't save role '$name' for profile '{$this->id}'");
+            }
+
+            Event::handle('EndGrantRole', array($this, $name));
         }
 
-        return true;
+        return $result;
     }
 
     function revokeRole($name)
     {
-        $role = Profile_role::pkeyGet(array('profile_id' => $this->id,
-                                            'role' => $name));
+        if (Event::handle('StartRevokeRole', array($this, $name))) {
 
-        if (empty($role)) {
-            // TRANS: Exception thrown when trying to revoke an existing role for a user that does not exist.
-            // TRANS: %1$s is the role name, %2$s is the user ID (number).
-            throw new Exception(sprintf(_('Cannot revoke role "%1$s" for user #%2$d; does not exist.'),$name, $this->id));
+            $role = Profile_role::pkeyGet(array('profile_id' => $this->id,
+                                                'role' => $name));
+
+            if (empty($role)) {
+                // TRANS: Exception thrown when trying to revoke an existing role for a user that does not exist.
+                // TRANS: %1$s is the role name, %2$s is the user ID (number).
+                throw new Exception(sprintf(_('Cannot revoke role "%1$s" for user #%2$d; does not exist.'),$name, $this->id));
+            }
+
+            $result = $role->delete();
+
+            if (!$result) {
+                common_log_db_error($role, 'DELETE', __FILE__);
+                // TRANS: Exception thrown when trying to revoke a role for a user with a failing database query.
+                // TRANS: %1$s is the role name, %2$s is the user ID (number).
+                throw new Exception(sprintf(_('Cannot revoke role "%1$s" for user #%2$d; database error.'),$name, $this->id));
+            }
+
+            Event::handle('EndRevokeRole', array($this, $name));
+
+            return true;
         }
-
-        $result = $role->delete();
-
-        if (!$result) {
-            common_log_db_error($role, 'DELETE', __FILE__);
-            // TRANS: Exception thrown when trying to revoke a role for a user with a failing database query.
-            // TRANS: %1$s is the role name, %2$s is the user ID (number).
-            throw new Exception(sprintf(_('Cannot revoke role "%1$s" for user #%2$d; database error.'),$name, $this->id));
-        }
-
-        return true;
     }
 
     function isSandboxed()
@@ -992,13 +1049,14 @@ class Profile extends Memcached_DataObject
      * @param $right string Name of the right, usually a constant in class Right
      * @return boolean whether the user has the right in question
      */
-
     function hasRight($right)
     {
         $result = false;
+
         if ($this->hasRole(Profile_role::DELETED)) {
             return false;
         }
+
         if (Event::handle('UserRightsCheck', array($this, $right, &$result))) {
             switch ($right)
             {
@@ -1007,6 +1065,7 @@ class Profile extends Memcached_DataObject
             case Right::SANDBOXUSER:
             case Right::SILENCEUSER:
             case Right::DELETEUSER:
+            case Right::DELETEGROUP:
                 $result = $this->hasRole(Profile_role::MODERATOR);
                 break;
             case Right::CONFIGURESITE:

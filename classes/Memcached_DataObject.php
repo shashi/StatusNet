@@ -189,11 +189,11 @@ class Memcached_DataObject extends Safe_DataObject
                        str_replace("\n", " ", $e->getTraceAsString()));
             return false;
         } else {
-		$keys = $this->_allCacheKeys();
+            $keys = $this->_allCacheKeys();
 
-		foreach ($keys as $key) {
-		    $c->set($key, $this);
-		}
+            foreach ($keys as $key) {
+                $c->set($key, $this);
+            }
         }
     }
 
@@ -338,13 +338,27 @@ class Memcached_DataObject extends Safe_DataObject
         }
 
         $start = microtime(true);
-        $result = parent::_query($string);
+        $fail = false;
+        try {
+            $result = parent::_query($string);
+        } catch (Exception $e) {
+            $fail = $e;
+        }
         $delta = microtime(true) - $start;
 
         $limit = common_config('db', 'log_slow_queries');
         if (($limit > 0 && $delta >= $limit) || common_config('db', 'log_queries')) {
             $clean = $this->sanitizeQuery($string);
-            common_log(LOG_DEBUG, sprintf("DB query (%0.3fs): %s", $delta, $clean));
+            if ($fail) {
+                $msg = sprintf("FAILED DB query (%0.3fs): %s - %s", $delta, $fail->getMessage(), $clean);
+            } else {
+                $msg = sprintf("DB query (%0.3fs): %s", $delta, $clean);
+            }
+            common_log(LOG_DEBUG, $msg);
+        }
+
+        if ($fail) {
+            throw $fail;
         }
         return $result;
     }
@@ -637,4 +651,3 @@ class Memcached_DataObject extends Safe_DataObject
         return $vstr;
     }
 }
-

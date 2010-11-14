@@ -34,7 +34,6 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
 require_once 'Net/URL/Mapper.php';
 
 class StatusNet_URL_Mapper extends Net_URL_Mapper {
-
     private static $_singleton = null;
 
     private function __construct()
@@ -71,7 +70,6 @@ class StatusNet_URL_Mapper extends Net_URL_Mapper {
  * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link     http://status.net/
  */
-
 class Router
 {
     var $m = null;
@@ -280,7 +278,7 @@ class Router
 
             $m->connect('group/new', array('action' => 'newgroup'));
 
-            foreach (array('edit', 'join', 'leave') as $v) {
+            foreach (array('edit', 'join', 'leave', 'delete') as $v) {
                 $m->connect('group/:nickname/'.$v,
                             array('action' => $v.'group'),
                             array('nickname' => '[a-zA-Z0-9]+'));
@@ -323,6 +321,11 @@ class Router
             // Twitter-compatible API
 
             // statuses API
+
+            $m->connect('api',
+                        array('action' => 'Redirect',
+                              'nextAction' => 'doc',
+                              'args' => array('title' => 'api')));
 
             $m->connect('api/statuses/public_timeline.:format',
                         array('action' => 'ApiTimelinePublic',
@@ -492,19 +495,19 @@ class Router
             // Social graph
 
             $m->connect('api/friends/ids/:id.:format',
-                        array('action' => 'apiuserfriends',
+                        array('action' => 'ApiUserFriends',
                               'ids_only' => true));
 
             $m->connect('api/followers/ids/:id.:format',
-                        array('action' => 'apiuserfollowers',
+                        array('action' => 'ApiUserFollowers',
                               'ids_only' => true));
 
             $m->connect('api/friends/ids.:format',
-                        array('action' => 'apiuserfriends',
+                        array('action' => 'ApiUserFriends',
                               'ids_only' => true));
 
             $m->connect('api/followers/ids.:format',
-                        array('action' => 'apiuserfollowers',
+                        array('action' => 'ApiUserFollowers',
                               'ids_only' => true));
 
             // account
@@ -557,9 +560,17 @@ class Router
                               'format' => '(xml|json)'));
             // blocks
 
+            $m->connect('api/blocks/create.:format',
+                        array('action' => 'ApiBlockCreate',
+                              'format' => '(xml|json)'));
+
             $m->connect('api/blocks/create/:id.:format',
                         array('action' => 'ApiBlockCreate',
                               'id' => '[a-zA-Z0-9]+',
+                              'format' => '(xml|json)'));
+
+            $m->connect('api/blocks/destroy.:format',
+                        array('action' => 'ApiBlockDestroy',
                               'format' => '(xml|json)'));
 
             $m->connect('api/blocks/destroy/:id.:format',
@@ -748,13 +759,13 @@ class Router
             $m->connect('api/trends.json', array('action' => 'ApiTrends'));
 
             $m->connect('api/oauth/request_token',
-                        array('action' => 'apioauthrequesttoken'));
+                        array('action' => 'ApiOauthRequestToken'));
 
             $m->connect('api/oauth/access_token',
-                        array('action' => 'apioauthaccesstoken'));
+                        array('action' => 'ApiOauthAccessToken'));
 
             $m->connect('api/oauth/authorize',
-                        array('action' => 'apioauthauthorize'));
+                        array('action' => 'ApiOauthAuthorize'));
 
             // Admin
 
@@ -766,6 +777,8 @@ class Router
             $m->connect('admin/sessions', array('action' => 'sessionsadminpanel'));
             $m->connect('admin/sitenotice', array('action' => 'sitenoticeadminpanel'));
             $m->connect('admin/snapshot', array('action' => 'snapshotadminpanel'));
+            $m->connect('admin/license', array('action' => 'licenseadminpanel'));
+
             $m->connect('admin/plugins', array('action' => 'pluginsadminpanel'));
             $m->connect('admin/plugins/enable/:plugin',
                         array('action' => 'pluginenable'),
@@ -782,16 +795,8 @@ class Router
 
             if (common_config('singleuser', 'enabled')) {
 
-                $user = User::siteOwner();
-
-                if (!empty($user)) {
-                    $nickname = $user->nickname;
-                } else {
-                    $nickname = common_config('singleuser', 'nickname');
-                    if (empty($nickname)) {
-                        throw new ServerException(_("No single user defined for single-user mode."));
-                    }
-                }
+                $user = User::singleUser();
+                $nickname = $user->nickname;
 
                 foreach (array('subscriptions', 'subscribers',
                                'all', 'foaf', 'xrds',
@@ -846,9 +851,7 @@ class Router
                 $m->connect('',
                             array('action' => 'showstream',
                                   'nickname' => $nickname));
-
             } else {
-
                 $m->connect('', array('action' => 'public'));
                 $m->connect('rss', array('action' => 'publicrss'));
                 $m->connect('featuredrss', array('action' => 'featuredrss'));
@@ -996,7 +999,8 @@ class Router
         } catch (Net_URL_Mapper_InvalidException $e) {
             common_log(LOG_ERR, "Problem getting route for $path - " .
                        $e->getMessage());
-            $cac = new ClientErrorAction("Page not found.", 404);
+            // TRANS: Client error on action trying to visit a non-existing page.
+            $cac = new ClientErrorAction(_('Page not found.'), 404);
             $cac->showPage();
         }
 
@@ -1023,7 +1027,16 @@ class Router
         if ($qpos !== false) {
             $url = substr($url, 0, $qpos+1) .
               str_replace('?', '&', substr($url, $qpos+1));
+
+            // @fixme this is a hacky workaround for http_build_query in the
+            // lower-level code and bad configs that set the default separator
+            // to &amp; instead of &. Encoded &s in parameters will not be
+            // affected.
+            $url = substr($url, 0, $qpos+1) .
+              str_replace('&amp;', '&', substr($url, $qpos+1));
+
         }
+
         return $url;
     }
 }
