@@ -5,8 +5,6 @@ bottom of the wiki page [0] or emailing me [1]
 Known issues
 ============
 
-+ Subscription & subscriber tag clouds show private tags when
-  they shouldn't be
 + Autocompletion has problems when text exceeds the width of the
   input box
 + The ajaxy people search results in the people tag editing
