@@ -143,7 +143,6 @@ class ProfilecompletionAction extends Action
             } else {
                 $this->element('p', 'error', _('No results.'));
             }
-            $profile->free();
         }
         $this->elementEnd('body');
         $this->elementEnd('html');
