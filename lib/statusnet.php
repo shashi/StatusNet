@@ -245,7 +245,7 @@ class StatusNet
      * Establish default configuration based on given or default server and path
      * Sets global $_server, $_path, and $config
      */
-    protected static function initDefaults($server, $path)
+    public static function initDefaults($server, $path)
     {
         global $_server, $_path, $config;
 
@@ -396,7 +396,11 @@ class StatusNet
     static function isHTTPS()
     {
         // There are some exceptions to this; add them here!
-        return !empty($_SERVER['HTTPS']);
+        if(empty($_SERVER['HTTPS'])) {
+            return false;
+        } else {
+            return $_SERVER['HTTPS'] !== 'off';
+        }
     }
 }
 

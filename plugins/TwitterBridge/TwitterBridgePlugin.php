@@ -200,7 +200,14 @@ class TwitterBridgePlugin extends Plugin
             return false;
         case 'TwitterOAuthClient':
         case 'TwitterQueueHandler':
+        case 'TwitterImport':
+        case 'JsonStreamReader':
+        case 'TwitterStreamReader':
             include_once $dir . '/' . strtolower($cls) . '.php';
+            return false;
+        case 'TwitterSiteStream':
+        case 'TwitterUserStream':
+            include_once $dir . '/twitterstreamreader.php';
             return false;
         case 'Notice_to_status':
         case 'Twitter_synch_status':
@@ -267,7 +274,11 @@ class TwitterBridgePlugin extends Plugin
     function onEndInitializeQueueManager($manager)
     {
         if (self::hasKeys()) {
+            // Outgoing notices -> twitter
             $manager->connect('twitter', 'TwitterQueueHandler');
+
+            // Incoming statuses <- twitter
+            $manager->connect('tweetin', 'TweetInQueueHandler');
         }
         return true;
     }
@@ -427,10 +438,14 @@ class TwitterBridgePlugin extends Plugin
                 return true;
             }
 
-            $token = TwitterOAuthClient::unpackToken($flink->credentials);
-            $client = new TwitterOAuthClient($token->key, $token->secret);
+            try {
+                $token = TwitterOAuthClient::unpackToken($flink->credentials);
+                $client = new TwitterOAuthClient($token->key, $token->secret);
 
-            $client->statusesDestroy($n2s->status_id);
+                $client->statusesDestroy($n2s->status_id);
+            } catch (Exception $e) {
+                common_log(LOG_ERR, "Error attempting to delete bridged notice from Twitter: " . $e->getMessage());
+            }
 
             $n2s->delete();
         }
@@ -464,10 +479,14 @@ class TwitterBridgePlugin extends Plugin
             return true;
         }
 
-        $token = TwitterOAuthClient::unpackToken($flink->credentials);
-        $client = new TwitterOAuthClient($token->key, $token->secret);
+        try {
+            $token = TwitterOAuthClient::unpackToken($flink->credentials);
+            $client = new TwitterOAuthClient($token->key, $token->secret);
 
-        $client->favoritesCreate($status_id);
+            $client->favoritesCreate($status_id);
+        } catch (Exception $e) {
+            common_log(LOG_ERR, "Error attempting to favorite bridged notice on Twitter: " . $e->getMessage());
+        }
 
         return true;
     }
@@ -500,10 +519,14 @@ class TwitterBridgePlugin extends Plugin
             return true;
         }
 
-        $token = TwitterOAuthClient::unpackToken($flink->credentials);
-        $client = new TwitterOAuthClient($token->key, $token->secret);
+        try {
+            $token = TwitterOAuthClient::unpackToken($flink->credentials);
+            $client = new TwitterOAuthClient($token->key, $token->secret);
 
-        $client->favoritesDestroy($status_id);
+            $client->favoritesDestroy($status_id);
+        } catch (Exception $e) {
+            common_log(LOG_ERR, "Error attempting to unfavorite bridged notice on Twitter: " . $e->getMessage());
+        }
 
         return true;
     }

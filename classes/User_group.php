@@ -100,15 +100,10 @@ class User_group extends Memcached_DataObject
         $inbox->selectAdd();
         $inbox->selectAdd('notice_id');
 
-        if ($since_id != 0) {
-            $inbox->whereAdd('notice_id > ' . $since_id);
-        }
+        Notice::addWhereSinceId($inbox, $since_id, 'notice_id');
+        Notice::addWhereMaxId($inbox, $max_id, 'notice_id');
 
-        if ($max_id != 0) {
-            $inbox->whereAdd('notice_id <= ' . $max_id);
-        }
-
-        $inbox->orderBy('notice_id DESC');
+        $inbox->orderBy('created DESC, notice_id DESC');
 
         if (!is_null($offset)) {
             $inbox->limit($offset, $limit);
@@ -232,6 +227,22 @@ class User_group extends Memcached_DataObject
     function getBestName()
     {
         return ($this->fullname) ? $this->fullname : $this->nickname;
+    }
+
+    /**
+     * Gets the full name (if filled) with nickname as a parenthetical, or the nickname alone
+     * if no fullname is provided.
+     *
+     * @return string
+     */
+    function getFancyName()
+    {
+        if ($this->fullname) {
+            // TRANS: Full name of a profile or group followed by nickname in parens
+            return sprintf(_m('FANCYNAME','%1$s (%2$s)'), $this->fullname, $this->nickname);
+        } else {
+            return $this->nickname;
+        }
     }
 
     function getAliases()

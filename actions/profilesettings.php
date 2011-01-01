@@ -225,7 +225,13 @@ class ProfilesettingsAction extends AccountSettingsAction
 
         if (Event::handle('StartProfileSaveForm', array($this))) {
 
-            $nickname = $this->trimmed('nickname');
+            try {
+                $nickname = Nickname::normalize($this->trimmed('nickname'));
+            } catch (NicknameException $e) {
+                $this->showForm($e->getMessage());
+                return;
+            }
+
             $fullname = $this->trimmed('fullname');
             $homepage = $this->trimmed('homepage');
             $bio = $this->trimmed('bio');
@@ -236,13 +242,7 @@ class ProfilesettingsAction extends AccountSettingsAction
             $tagstring = $this->trimmed('tags');
 
             // Some validation
-            if (!Validate::string($nickname, array('min_length' => 1,
-                                                   'max_length' => 64,
-                                                   'format' => NICKNAME_FMT))) {
-                // TRANS: Validation error in form for profile settings.
-                $this->showForm(_('Nickname must have only lowercase letters and numbers and no spaces.'));
-                return;
-            } else if (!User::allowed_nickname($nickname)) {
+            if (!User::allowed_nickname($nickname)) {
                 // TRANS: Validation error in form for profile settings.
                 $this->showForm(_('Not a valid nickname.'));
                 return;
@@ -458,5 +458,34 @@ class ProfilesettingsAction extends AccountSettingsAction
         } else {
             return $other->id != $user->id;
         }
+    }
+
+    function showAside() {
+        $user = common_current_user();
+
+        $this->elementStart('div', array('id' => 'aside_primary',
+                                         'class' => 'aside'));
+        if ($user->hasRight(Right::BACKUPACCOUNT)) {
+            $this->elementStart('li');
+            $this->element('a',
+                           array('href' => common_local_url('backupaccount')),
+                           _('Backup account'));
+            $this->elementEnd('li');
+        }
+        if ($user->hasRight(Right::DELETEACCOUNT)) {
+            $this->elementStart('li');
+            $this->element('a',
+                           array('href' => common_local_url('deleteaccount')),
+                           _('Delete account'));
+            $this->elementEnd('li');
+        }
+        if ($user->hasRight(Right::RESTOREACCOUNT)) {
+            $this->elementStart('li');
+            $this->element('a',
+                           array('href' => common_local_url('restoreaccount')),
+                           _('Restore account'));
+            $this->elementEnd('li');
+        }
+        $this->elementEnd('div');
     }
 }

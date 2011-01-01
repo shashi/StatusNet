@@ -125,6 +125,14 @@ class Profile extends Memcached_DataObject
         return $avatar;
     }
 
+    /**
+     * Delete attached avatars for this user from the database and filesystem.
+     * This should be used instead of a batch delete() to ensure that files
+     * get removed correctly.
+     *
+     * @param boolean $original true to delete only the original-size file
+     * @return <type>
+     */
     function delete_avatars($original=true)
     {
         $avatar = new Avatar();
@@ -141,9 +149,30 @@ class Profile extends Memcached_DataObject
         return true;
     }
 
+    /**
+     * Gets either the full name (if filled) or the nickname.
+     *
+     * @return string
+     */
     function getBestName()
     {
         return ($this->fullname) ? $this->fullname : $this->nickname;
+    }
+
+    /**
+     * Gets the full name (if filled) with nickname as a parenthetical, or the nickname alone
+     * if no fullname is provided.
+     *
+     * @return string
+     */
+    function getFancyName()
+    {
+        if ($this->fullname) {
+            // TRANS: Full name of a profile or group followed by nickname in parens
+            return sprintf(_m('FANCYNAME','%1$s (%2$s)'), $this->fullname, $this->nickname);
+        } else {
+            return $this->nickname;
+        }
     }
 
     /**
@@ -186,26 +215,29 @@ class Profile extends Memcached_DataObject
     function _streamTaggedDirect($tag, $offset, $limit, $since_id, $max_id)
     {
         // XXX It would be nice to do this without a join
+        // (necessary to do it efficiently on accounts with long history)
 
         $notice = new Notice();
 
         $query =
           "select id from notice join notice_tag on id=notice_id where tag='".
           $notice->escape($tag) .
-          "' and profile_id=" . $notice->escape($this->id);
+          "' and profile_id=" . intval($this->id);
 
-        if ($since_id != 0) {
-            $query .= " and id > $since_id";
+        $since = Notice::whereSinceId($since_id, 'id', 'notice.created');
+        if ($since) {
+            $query .= " and ($since)";
         }
 
-        if ($max_id != 0) {
-            $query .= " and id <= $max_id";
+        $max = Notice::whereMaxId($max_id, 'id', 'notice.created');
+        if ($max) {
+            $query .= " and ($max)";
         }
 
-        $query .= ' order by id DESC';
+        $query .= ' order by notice.created DESC, id DESC';
 
         if (!is_null($offset)) {
-            $query .= " LIMIT $limit OFFSET $offset";
+            $query .= " LIMIT " . intval($limit) . " OFFSET " . intval($offset);
         }
 
         $notice->query($query);
@@ -223,57 +255,21 @@ class Profile extends Memcached_DataObject
     {
         $notice = new Notice();
 
-        // Temporary hack until notice_profile_id_idx is updated
-        // to (profile_id, id) instead of (profile_id, created, id).
-        // It's been falling back to PRIMARY instead, which is really
-        // very inefficient for a profile that hasn't posted in a few
-        // months. Even though forcing the index will cause a filesort,
-        // it's usually going to be better.
-        if (common_config('db', 'type') == 'mysql') {
-            $index = '';
-            $query =
-              "select id from notice force index (notice_profile_id_idx) ".
-              "where profile_id=" . $notice->escape($this->id);
+        $notice->profile_id = $this->id;
 
-            if ($since_id != 0) {
-                $query .= " and id > $since_id";
-            }
+        $notice->selectAdd();
+        $notice->selectAdd('id');
 
-            if ($max_id != 0) {
-                $query .= " and id <= $max_id";
-            }
+        Notice::addWhereSinceId($notice, $since_id);
+        Notice::addWhereMaxId($notice, $max_id);
 
-            $query .= ' order by id DESC';
+        $notice->orderBy('created DESC, id DESC');
 
-            if (!is_null($offset)) {
-                $query .= " LIMIT $limit OFFSET $offset";
-            }
-
-            $notice->query($query);
-        } else {
-            $index = '';
-
-            $notice->profile_id = $this->id;
-
-            $notice->selectAdd();
-            $notice->selectAdd('id');
-
-            if ($since_id != 0) {
-                $notice->whereAdd('id > ' . $since_id);
-            }
-
-            if ($max_id != 0) {
-                $notice->whereAdd('id <= ' . $max_id);
-            }
-
-            $notice->orderBy('id DESC');
-
-            if (!is_null($offset)) {
-                $notice->limit($offset, $limit);
-            }
-
-            $notice->find();
+        if (!is_null($offset)) {
+            $notice->limit($offset, $limit);
         }
+
+        $notice->find();
 
         $ids = array();
 
@@ -528,55 +524,34 @@ class Profile extends Memcached_DataObject
 
     function getSubscriptions($offset=0, $limit=null)
     {
-        $qry =
-          'SELECT profile.* ' .
-          'FROM profile JOIN subscription ' .
-          'ON profile.id = subscription.subscribed ' .
-          'WHERE subscription.subscriber = %d ' .
-          'AND subscription.subscribed != subscription.subscriber ' .
-          'ORDER BY subscription.created DESC ';
+        $subs = Subscription::bySubscriber($this->id,
+                                           $offset,
+                                           $limit);
 
-        if ($offset>0 && !is_null($limit)){
-            if (common_config('db','type') == 'pgsql') {
-                $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
-            } else {
-                $qry .= ' LIMIT ' . $offset . ', ' . $limit;
-            }
+        $profiles = array();
+
+        while ($subs->fetch()) {
+            $profiles[] = Profile::staticGet($subs->subscribed);
         }
 
-        $profile = new Profile();
-
-        $profile->query(sprintf($qry, $this->id));
-
-        return $profile;
+        return new ArrayWrapper($profiles);
     }
 
     function getSubscribers($offset=0, $limit=null)
     {
-        $qry =
-          'SELECT profile.* ' .
-          'FROM profile JOIN subscription ' .
-          'ON profile.id = subscription.subscriber ' .
-          'WHERE subscription.subscribed = %d ' .
-          'AND subscription.subscribed != subscription.subscriber ' .
-          'ORDER BY subscription.created DESC ';
+        $subs = Subscription::bySubscribed($this->id,
+                                           $offset,
+                                           $limit);
 
-        if ($offset>0 && !is_null($limit)){
-            if ($offset) {
-                if (common_config('db','type') == 'pgsql') {
-                    $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
-                } else {
-                    $qry .= ' LIMIT ' . $offset . ', ' . $limit;
-                }
-            }
+        $profiles = array();
+
+        while ($subs->fetch()) {
+            $profiles[] = Profile::staticGet($subs->subscriber);
         }
 
-        $profile = new Profile();
-
-        $cnt = $profile->query(sprintf($qry, $this->id));
-
-        return $profile;
+        return new ArrayWrapper($profiles);
     }
+
 
     function getTaggedSubscribers($tag)
     {
@@ -601,31 +576,6 @@ class Profile extends Memcached_DataObject
             $tagged[] = clone($profile);
         }
         return $tagged;
-    }
-
-    function getConnectedApps($offset = 0, $limit = null)
-    {
-        $qry =
-          'SELECT u.* ' .
-          'FROM oauth_application_user u, oauth_application a ' .
-          'WHERE u.profile_id = %d ' .
-          'AND a.id = u.application_id ' .
-          'AND u.access_type > 0 ' .
-          'ORDER BY u.created DESC ';
-
-        if ($offset > 0) {
-            if (common_config('db','type') == 'pgsql') {
-                $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
-            } else {
-                $qry .= ' LIMIT ' . $offset . ', ' . $limit;
-            }
-        }
-
-        $apps = new Oauth_application_user();
-
-        $cnt = $apps->query(sprintf($qry, $this->id));
-
-        return $apps;
     }
 
     function subscriptionCount()
@@ -673,6 +623,29 @@ class Profile extends Memcached_DataObject
         }
 
         return $cnt;
+    }
+
+    /**
+     * Is this profile subscribed to another profile?
+     *
+     * @param Profile $other
+     * @return boolean
+     */
+    function isSubscribed($other)
+    {
+        return Subscription::exists($this, $other);
+    }
+
+    /**
+     * Are these two profiles subscribed to each other?
+     *
+     * @param Profile $other
+     * @return boolean
+     */
+    function mutuallySubscribed($other)
+    {
+        return $this->isSubscribed($other) &&
+          $other->isSubscribed($this);
     }
 
     function hasFave($notice)
@@ -755,14 +728,14 @@ class Profile extends Memcached_DataObject
 
     function blowFavesCache()
     {
-        $cache = common_memcache();
+        $cache = Cache::instance();
         if ($cache) {
             // Faves don't happen chronologically, so we need to blow
             // ;last cache, too
-            $cache->delete(common_cache_key('fave:ids_by_user:'.$this->id));
-            $cache->delete(common_cache_key('fave:ids_by_user:'.$this->id.';last'));
-            $cache->delete(common_cache_key('fave:ids_by_user_own:'.$this->id));
-            $cache->delete(common_cache_key('fave:ids_by_user_own:'.$this->id.';last'));
+            $cache->delete(Cache::key('fave:ids_by_user:'.$this->id));
+            $cache->delete(Cache::key('fave:ids_by_user:'.$this->id.';last'));
+            $cache->delete(Cache::key('fave:ids_by_user_own:'.$this->id));
+            $cache->delete(Cache::key('fave:ids_by_user_own:'.$this->id.';last'));
         }
         $this->blowFaveCount();
     }
@@ -822,9 +795,11 @@ class Profile extends Memcached_DataObject
         $this->_deleteMessages();
         $this->_deleteTags();
         $this->_deleteBlocks();
+        $this->delete_avatars();
 
-        $related = array('Avatar',
-                         'Reply',
+        // Warning: delete() will run on the batch objects,
+        // not on individual objects.
+        $related = array('Reply',
                          'Group_member',
                          );
         Event::handle('ProfileDeleteRelated', array($this, &$related));
@@ -1085,6 +1060,18 @@ class Profile extends Memcached_DataObject
             case Right::EMAILONSUBSCRIBE:
             case Right::EMAILONFAVE:
                 $result = !$this->isSandboxed();
+                break;
+            case Right::BACKUPACCOUNT:
+                $result = common_config('profile', 'backup');
+                break;
+            case Right::RESTOREACCOUNT:
+                $result = common_config('profile', 'restore');
+                break;
+            case Right::DELETEACCOUNT:
+                $result = common_config('profile', 'delete');
+                break;
+            case Right::MOVEACCOUNT:
+                $result = common_config('profile', 'move');
                 break;
             default:
                 $result = false;

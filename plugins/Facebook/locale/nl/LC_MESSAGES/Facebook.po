@@ -9,13 +9,13 @@ msgid ""
 msgstr ""
 "Project-Id-Version: StatusNet - Facebook\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-10-27 23:43+0000\n"
-"PO-Revision-Date: 2010-10-27 23:46:35+0000\n"
+"POT-Creation-Date: 2010-12-16 15:08+0000\n"
+"PO-Revision-Date: 2010-12-16 15:11:51+0000\n"
 "Language-Team: Dutch <http://translatewiki.net/wiki/Portal:nl>\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-POT-Import-Date: 2010-10-23 18:57:01+0000\n"
-"X-Generator: MediaWiki 1.17alpha (r75590); Translate extension (2010-09-17)\n"
+"X-POT-Import-Date: 2010-11-30 20:40:34+0000\n"
+"X-Generator: MediaWiki 1.18alpha (r78478); Translate extension (2010-09-17)\n"
 "X-Translation-Project: translatewiki.net at http://translatewiki.net\n"
 "X-Language-Code: nl\n"
 "X-Message-Group: #out-statusnet-plugin-facebook\n"
@@ -37,7 +37,7 @@ msgid ""
 msgstr ""
 "Hallo %1$s.\n"
 "\n"
-"Het spijt ons je te moeten meedelen dat het niet mogelijk is uw "
+"Het spijt ons u te moeten meedelen dat het niet mogelijk is uw "
 "Facebookstatus bij te werken vanuit %2$s. De Facebookapplicatie is "
 "uitgeschakeld voor uw gebruiker. Dit kan komen doordat u de toegangsrechten "
 "voor de Facebookapplicatie hebt ingetrokken of omdat u uw Facebookgebruiker "
@@ -80,7 +80,7 @@ msgid ""
 "Facebook to a local account. You can either create a new account, or connect "
 "with your existing account, if you have one."
 msgstr ""
-"De is de eerste keer dat u aanmeldt bij %s en dan moeten we uw "
+"Dit is de eerste keer dat u aanmeldt bij %s en dan moeten we uw "
 "Facebookgebruiker koppelen met uw lokale gebruiker. U kunt een nieuwe "
 "gebruiker aanmaken of koppelen met een bestaande gebruiker als u die al hebt."
 
@@ -166,26 +166,20 @@ msgstr "Registratie is niet toegestaan."
 msgid "Not a valid invitation code."
 msgstr "De uitnodigingscode is ongeldig."
 
-#: FBConnectAuth.php:265
-msgid "Nickname must have only lowercase letters and numbers and no spaces."
-msgstr ""
-"De gebruikersnaam mag alleen kleine letters en cijfers bevatten. Spaties "
-"zijn niet toegestaan."
-
-#: FBConnectAuth.php:270
+#: FBConnectAuth.php:267
 msgid "Nickname not allowed."
 msgstr "Gebruikersnaam niet toegestaan."
 
-#: FBConnectAuth.php:275
+#: FBConnectAuth.php:272
 msgid "Nickname already in use. Try another one."
 msgstr ""
 "De opgegeven gebruikersnaam is al in gebruik. Kies een andere gebruikersnaam."
 
-#: FBConnectAuth.php:293 FBConnectAuth.php:327 FBConnectAuth.php:347
+#: FBConnectAuth.php:290 FBConnectAuth.php:324 FBConnectAuth.php:344
 msgid "Error connecting user to Facebook."
 msgstr "Fout bij het verbinden van de gebruiker met Facebook."
 
-#: FBConnectAuth.php:313
+#: FBConnectAuth.php:310
 msgid "Invalid username or password."
 msgstr "Ongeldige gebruikersnaam of wachtwoord."
 

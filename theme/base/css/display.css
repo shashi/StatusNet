@@ -1430,15 +1430,6 @@ margin-left:4px;
 .notice .attachment.more {
 padding-left:0;
 }
-.notice .attachment img {
-position:absolute;
-top:18px;
-left:0;
-z-index:99;
-}
-#shownotice .notice .attachment img {
-position:static;
-}
 
 #attachments {
 clear:both;
@@ -1863,6 +1854,12 @@ display: inline-block;
 float:right;
 }
 
+.inline-attachment img {
+    /* Why on earth is this changed to block at the top? */
+    display: inline;
+    border: solid 1px #aaa;
+    padding: 1px;
+}
 }/*end of @media screen, projection, tv*/
 
 

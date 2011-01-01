@@ -79,7 +79,8 @@ class User extends Memcached_DataObject
 
     function isSubscribed($other)
     {
-        return Subscription::exists($this->getProfile(), $other);
+        $profile = $this->getProfile();
+        return $profile->isSubscribed($other);
     }
 
     // 'update' won't write key columns, so we have to do it ourselves.
@@ -110,6 +111,16 @@ class User extends Memcached_DataObject
         return $result;
     }
 
+    /**
+     * Check whether the given nickname is potentially usable, or if it's
+     * excluded by any blacklists on this system.
+     *
+     * WARNING: INPUT IS NOT VALIDATED OR NORMALIZED. NON-NORMALIZED INPUT
+     * OR INVALID INPUT MAY LEAD TO FALSE RESULTS.
+     *
+     * @param string $nickname
+     * @return boolean true if clear, false if blacklisted
+     */
     static function allowed_nickname($nickname)
     {
         // XXX: should already be validated for size, content, etc.
@@ -413,8 +424,8 @@ class User extends Memcached_DataObject
 
     function mutuallySubscribed($other)
     {
-        return $this->isSubscribed($other) &&
-          $other->isSubscribed($this);
+        $profile = $this->getProfile();
+        return $profile->mutuallySubscribed($other);
     }
 
     function mutuallySubscribedUsers()
@@ -739,19 +750,14 @@ class User extends Memcached_DataObject
         $notice->profile_id = $this->id;
         $notice->whereAdd('repeat_of IS NOT NULL');
 
-        $notice->orderBy('id DESC');
+        $notice->orderBy('created DESC, id DESC');
 
         if (!is_null($offset)) {
             $notice->limit($offset, $limit);
         }
 
-        if ($since_id != 0) {
-            $notice->whereAdd('id > ' . $since_id);
-        }
-
-        if ($max_id != 0) {
-            $notice->whereAdd('id <= ' . $max_id);
-        }
+        Notice::addWhereSinceId($notice, $since_id);
+        Notice::addWhereMaxId($notice, $max_id);
 
         $ids = array();
 
@@ -784,17 +790,17 @@ class User extends Memcached_DataObject
           'FROM notice original JOIN notice rept ON original.id = rept.repeat_of ' .
           'WHERE original.profile_id = ' . $this->id . ' ';
 
-        if ($since_id != 0) {
-            $qry .= 'AND original.id > ' . $since_id . ' ';
+        $since = Notice::whereSinceId($since_id, 'original.id', 'original.created');
+        if ($since) {
+            $qry .= "AND ($since) ";
         }
 
-        if ($max_id != 0) {
-            $qry .= 'AND original.id <= ' . $max_id . ' ';
+        $max = Notice::whereMaxId($max_id, 'original.id', 'original.created');
+        if ($max) {
+            $qry .= "AND ($max) ";
         }
 
-        // NOTE: we sort by fave time, not by notice time!
-
-        $qry .= 'ORDER BY original.id DESC ';
+        $qry .= 'ORDER BY original.created, original.id DESC ';
 
         if (!is_null($offset)) {
             $qry .= "LIMIT $limit OFFSET $offset";
@@ -911,4 +917,85 @@ class User extends Memcached_DataObject
             throw new ServerException(_('Single-user mode code called when not enabled.'));
         }
     }
+
+    /**
+     * This is kind of a hack for using external setup code that's trying to
+     * build single-user sites.
+     *
+     * Will still return a username if the config singleuser/nickname is set
+     * even if the account doesn't exist, which normally indicates that the
+     * site is horribly misconfigured.
+     *
+     * At the moment, we need to let it through so that router setup can
+     * complete, otherwise we won't be able to create the account.
+     *
+     * This will be easier when we can more easily create the account and
+     * *then* switch the site to 1user mode without jumping through hoops.
+     *
+     * @return string
+     * @throws ServerException if no valid single user account is present
+     * @throws ServerException if called when not in single-user mode
+     */
+    static function singleUserNickname()
+    {
+        try {
+            $user = User::singleUser();
+            return $user->nickname;
+        } catch (Exception $e) {
+            if (common_config('singleuser', 'enabled') && common_config('singleuser', 'nickname')) {
+                common_log(LOG_WARN, "Warning: code attempting to pull single-user nickname when the account does not exist. If this is not setup time, this is probably a bug.");
+                return common_config('singleuser', 'nickname');
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Find and shorten links in the given text using this user's URL shortening
+     * settings.
+     *
+     * By default, links will be left untouched if the text is shorter than the
+     * configured maximum notice length. Pass true for the $always parameter
+     * to force all links to be shortened regardless.
+     *
+     * Side effects: may save file and file_redirection records for referenced URLs.
+     *
+     * @param string $text
+     * @param boolean $always
+     * @return string
+     */
+    public function shortenLinks($text, $always=false)
+    {
+        return common_shorten_links($text, $always, $this);
+    }
+
+    /*
+     * Get a list of OAuth client application that have access to this
+     * user's account.
+     */
+    function getConnectedApps($offset = 0, $limit = null)
+    {
+        $qry =
+          'SELECT u.* ' .
+          'FROM oauth_application_user u, oauth_application a ' .
+          'WHERE u.profile_id = %d ' .
+          'AND a.id = u.application_id ' .
+          'AND u.access_type > 0 ' .
+          'ORDER BY u.created DESC ';
+
+        if ($offset > 0) {
+            if (common_config('db','type') == 'pgsql') {
+                $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
+            } else {
+                $qry .= ' LIMIT ' . $offset . ', ' . $limit;
+            }
+        }
+
+        $apps = new Oauth_application_user();
+
+        $cnt = $apps->query(sprintf($qry, $this->id));
+
+        return $apps;
+    }
+
 }
