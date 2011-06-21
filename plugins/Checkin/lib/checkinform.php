@@ -1,12 +1,13 @@
 <?php
 /**
- * StatusNet, the distributed open-source microblogging tool
+ * StatusNet - the distributed open-source microblogging tool
+ * Copyright (C) 2011, StatusNet, Inc.
  *
- * Form for repeating a notice
+ * Form for checking in
  *
  * PHP version 5
  *
- * LICENCE: This program is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -19,71 +20,46 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @category  Form
+ * @category  Checkin
  * @package   StatusNet
  * @author    Shashi Gowda <connect2shashi@gmail.com>
- * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
+ * @copyright 2011 StatusNet, Inc.
+ * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html AGPL 3.0
  * @link      http://status.net/
  */
 
 if (!defined('STATUSNET')) {
+    // This check helps protect against security problems;
+    // your code file can't be executed directly from the web.
     exit(1);
 }
 
-class CheckinForm extends Widget
-{
-    function __construct($out=null, $profile=null)
-    {
-        parent::__construct($out);
-
-        $this->profile = $profile;
-    }
-    function show()
-    {
-        $this->out->elementStart('li', 'entity_checkin');
-        $this->showCheckinButton();
-
-        $dialog = new CheckinDialog($this->out, $this->profile);
-        $dialog->show();
-
-        $this->out->elementEnd('li');
-    }
-
-    function showCheckinButton()
-    {
-        $this->element('a', array('href' => '#', 'class' => 'checkin_button'),
-            _m('BUTTON', 'Checkin'));
-    }
-}
-
 /**
- * Form for repeating a notice
+ * Form to add a new checkin
  *
- * @category Form
- * @package  StatusNet
- * @author   Shashi Gowda <connect2shashi@gmail.com>
- * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
- * @link     http://status.net/
+ * @category  Checkin
+ * @package   StatusNet
+ * @author    Shashi Gowda <connect2shashi@gmail.com>
+ * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html AGPL 3.0
+ * @link      http://status.net/
  */
-
-class CheckinDialog extends Form
+class CheckinForm extends Form
 {
-    /**
-     * Profile to checkin
-     */
-    var $profile = null;
+    protected $title;
+    protected $description;
 
     /**
-     * Constructor
+     * Construct a new checkin form
      *
-     * @param HTMLOutputter $out    output channel
-     * @param Profile       $notice profile to checkin
+     * @param HTMLOutputter $out output channel
+     *
+     * @return void
      */
-    function __construct($out=null, $profile=null)
+    function __construct($out = null, $title = null, $description = null, $options = null)
     {
         parent::__construct($out);
-
-        $this->profile = $profile;
+        $this->title       = $title;
+        $this->description = $description;
     }
 
     /**
@@ -93,7 +69,17 @@ class CheckinDialog extends Form
      */
     function id()
     {
-        return 'checkin-' . $this->profile->id;
+        return 'newcheckin-form';
+    }
+
+    /**
+     * class of the form
+     *
+     * @return string class of the form
+     */
+    function formClass()
+    {
+        return 'form_settings ajax-notice';
     }
 
     /**
@@ -107,38 +93,41 @@ class CheckinDialog extends Form
     }
 
     /**
-     * Include a session token for CSRF protection
-     *
-     * @return void
-     */
-    function sessionToken()
-    {
-        $this->out->hidden('token',
-                           common_session_token());
-    }
-
-    /**
-     * Legend of the Form
-     *
-     * @return void
-     */
-    function formLegend()
-    {
-        // TRANS: For legend for notice repeat form.
-        $this->out->element('legend', null, sprintf(_('Checkin %s?'),
-                                    $this->profile->getBestName()));
-    }
-
-    /**
-     * Data elements
+     * Data elements of the form
      *
      * @return void
      */
     function formData()
     {
-        $this->out->hidden('profile-n'.$this->profile->id,
-                           $this->profile->id,
-                           'profile');
+        $this->out->elementStart('fieldset', array('id' => 'newcheckin-data'));
+        $this->out->elementStart('ul', 'form_data');
+
+        $this->li();
+        $this->element('span', array('class' => 'status'));
+	$this->unli();
+
+        $this->li();
+	if (common_current_user()->shareLocation()) {
+	    $this->out->hidden('checkin_data-lat', empty($this->lat) ? (empty($this->profile->lat) ? null : $this->profile->lat) : $this->lat, 'lat');
+	    $this->out->hidden('checkin_data-lon', empty($this->lon) ? (empty($this->profile->lon) ? null : $this->profile->lon) : $this->lon, 'lon');
+
+	    $this->out->hidden('checkin_data-location_id', empty($this->location_id) ? (empty($this->profile->location_id) ? null : $this->profile->location_id) : $this->location_id, 'location_id');
+	    $this->out->hidden('checkin_data-location_ns', empty($this->location_ns) ? (empty($this->profile->location_ns) ? null : $this->profile->location_ns) : $this->location_ns, 'location_ns');
+
+	    $this->out->elementEnd('ul');
+	    $toWidget = new ToSelector(
+	        $this->out,
+	            common_current_user(),
+		    null
+		);
+		$toWidget->show();
+
+	} else {
+	    $this->out->element('span', null, _('You have disabled sharing your location'));
+	}
+        $this->unli();
+
+        $this->out->elementEnd('fieldset');
     }
 
     /**
@@ -148,26 +137,12 @@ class CheckinDialog extends Form
      */
     function formActions()
     {
-        $this->out->elementStart('span', 'checkbox-wrapper');
-        $this->out->checkbox('checkin_private',
-                             // TRANS: Checkbox label in widget for selecting potential addressees to mark the notice private.
-                             _('Private?'), false);
-        $this->out->elementEnd('span');
-
-        $this->out->submit('checkin-submit-' . $this->profile->id,
-                           // TRANS: Button text to repeat a notice on notice repeat form.
-                           _m('BUTTON','Yes'), 'submit', null,
-                           // TRANS: Button title to repeat a notice on notice repeat form.
-                           _('Repeat this notice.'));
-    }
-
-    /**
-     * Class of the form.
-     *
-     * @return string the form's class
-     */
-    function formClass()
-    {
-        return 'form_checkin';
+        $label = _m('BUTTON', 'Check in');
+        // TRANS: Button text for saving a new checkin.
+        $this->out->element('input', array('type' => 'submit',
+                                      'id' => 'checkin_submit',
+				      'disabled' => 'true',
+                                      'class' => 'submit',
+                                      'value' => $label));
     }
 }

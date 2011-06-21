@@ -136,7 +136,7 @@ class CheckinPlugin extends MicroAppPlugin
     }
 
     function appTitle() {
-        return _m('Checkin');
+        return _m('Check-in');
     }
 
     function tag() {
@@ -271,7 +271,9 @@ class CheckinPlugin extends MicroAppPlugin
 
     function entryForm($out)
     {
-        return;
+	$profile = common_current_user()->getProfile();
+        $form = new CheckinForm($out, $profile);
+	$form->show();
     }
 
     /**
@@ -287,17 +289,6 @@ class CheckinPlugin extends MicroAppPlugin
         } else {
             common_log(LOG_DEBUG, "Not deleting related, wtf...");
         }
-    }
-
-    function onStartShowEntryForms(&$tabs) {
-        return true;
-    }
-
-    function onEndProfilePageActionsElements($action, $profile) {
-        $action->elementStart('li', 'entity_checkin');
-        $form = new CheckinForm($action, $profile);
-        $form->show();
-        $action->elementEnd('li');
     }
 
     function onEndShowScripts($action)
