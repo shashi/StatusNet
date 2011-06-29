@@ -54,6 +54,7 @@ class CheckinPlugin extends MicroAppPlugin
         $schema = Schema::get();
 
         $schema->ensureTable('checkin', Checkin::schemaDef());
+        $schema->
 
         return true;
     }

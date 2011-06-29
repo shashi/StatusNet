@@ -1,0 +1,72 @@
+.entity_poke {
+position: relative;
+}
+
+.entity_poke .dialogbox {
+min-width: 150px;
+left:0;
+}
+.entity_poke .poke_button {
+    background-repeat: no-repeat;
+  background-image:url(poke.png);
+  background-position: 6px 6px;
+}
+.form_poke, .form_poke .checkbox-wrapper #poke_private {
+display: none;
+}
+.form_poke fieldset {
+display: inline;
+}
+.form_poke .checkbox-wrapper {
+margin-left: 0;
+position: absolute;
+float: left;
+}
+
+.form_poke .submit_dialogbox {
+margin-right: 0;
+min-width: 46px;
+float:right;
+}
+
+.poke .poked_avatar .nickname, .poke .author .nickname {
+display: none !important;
+}
+.poke {
+position: relative;
+}
+
+.poke .poked_avatar {
+position: relative;
+display: inline;
+float: left;
+width: 32px;
+height: 32px;
+
+}
+.poke .poked_avatar img {
+position: absolute;
+top: 8px;
+}
+
+.poke .poke_action {
+display: inline;
+float: left;
+width: 24px;
+height: 24px;
+text-indent:-9999px;
+background-repeat: no-repeat;
+background-image: url(poke.png);
+background-position: 0 12px;
+}
+
+.poke p.entry-content {
+border-left: 2px lightgray dotted;
+padding: 4px;
+position:absolute;
+top: 7px;
+}
+
+.poke p.entry-content .nickname {
+font-weight: bold;
+}

@@ -104,27 +104,31 @@ class CheckinForm extends Form
 
         $this->li();
         $this->element('span', array('class' => 'status'));
-	$this->unli();
+        $this->unli();
 
         $this->li();
-	if (common_current_user()->shareLocation()) {
-	    $this->out->hidden('checkin_data-lat', empty($this->lat) ? (empty($this->profile->lat) ? null : $this->profile->lat) : $this->lat, 'lat');
-	    $this->out->hidden('checkin_data-lon', empty($this->lon) ? (empty($this->profile->lon) ? null : $this->profile->lon) : $this->lon, 'lon');
+        if (common_current_user()->shareLocation()) {
+            $attr = array('class' => 'checkin_data-geo_wrap',
+                          'data-api' => common_local_url('geocode'));
+            $this->out->element('div', $attr);
 
-	    $this->out->hidden('checkin_data-location_id', empty($this->location_id) ? (empty($this->profile->location_id) ? null : $this->profile->location_id) : $this->location_id, 'location_id');
-	    $this->out->hidden('checkin_data-location_ns', empty($this->location_ns) ? (empty($this->profile->location_ns) ? null : $this->profile->location_ns) : $this->location_ns, 'location_ns');
+            $this->out->hidden('checkin_data-lat', empty($this->lat) ? (empty($this->profile->lat) ? null : $this->profile->lat) : $this->lat, 'lat');
+            $this->out->hidden('checkin_data-lon', empty($this->lon) ? (empty($this->profile->lon) ? null : $this->profile->lon) : $this->lon, 'lon');
 
-	    $this->out->elementEnd('ul');
-	    $toWidget = new ToSelector(
-	        $this->out,
-	            common_current_user(),
-		    null
-		);
-		$toWidget->show();
+            $this->out->hidden('checkin_data-location_id', empty($this->location_id) ? (empty($this->profile->location_id) ? null : $this->profile->location_id) : $this->location_id, 'location_id');
+            $this->out->hidden('checkin_data-location_ns', empty($this->location_ns) ? (empty($this->profile->location_ns) ? null : $this->profile->location_ns) : $this->location_ns, 'location_ns');
 
-	} else {
-	    $this->out->element('span', null, _('You have disabled sharing your location'));
-	}
+            $this->out->elementEnd('ul');
+            $toWidget = new ToSelector(
+                $this->out,
+                common_current_user(),
+    	        null
+    	    );
+    	    $toWidget->show();
+
+        } else {
+            $this->out->element('span', null, _('You have disabled sharing your location'));
+        }
         $this->unli();
 
         $this->out->elementEnd('fieldset');

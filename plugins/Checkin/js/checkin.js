@@ -25,6 +25,9 @@
                         };
 
                 showMsg('Looking up place name...');
+                var geocodeURL = form.find('.checkin_data-geo_wrap')
+                                 .attr('data-api');
+
                 $.getJSON(geocodeURL, data, function(location) {
                     var lns, lid;
 
@@ -46,8 +49,6 @@
                     }
 
                     SN.U.NoticeGeoStatus(form, NLN_text, data.lat, data.lon, location.url);
-                    label
-                        .attr('title', NoticeDataGeo_text.ShareDisable + ' (' + NLN_text + ')');
 
                     form.find('[name=lat]').val(data.lat);
                     form.find('[name=lon]').val(data.lon);
